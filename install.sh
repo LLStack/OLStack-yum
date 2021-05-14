@@ -180,16 +180,16 @@ runInstall(){
     phpMyAdminURL=${phpMyAdmin_CN}
   fi
 
-  if [ ! -d "/tmp/LLStack-${envType}" ]; then
+  if [ ! -d "/tmp/OLStack-${envType}" ]; then
     cd /tmp || exit
-    if [ ! -f "LLStack-${envType}.zip" ]; then
-      if ! curl -L --retry 3 -o "LLStack-${envType}.zip" "https://${GitFileUrl}/LLStack/OLStack-yum/archive/refs/heads/${envType}.zip"
+    if [ ! -f "OLStack-${envType}.zip" ]; then
+      if ! curl -L --retry 3 -o "OLStack-${envType}.zip" "${GitFileUrl}/LLStack/OLStack-yum/archive/refs/heads/${envType}.zip"
       then
-        showError "LLStack-${envType} download failed!"
+        showError "OLStack-${envType} download failed!"
         exit
       fi
     fi
-    unzip -q "LLStack-${envType}.zip" 
+    unzip -q "OLStack-${envType}.zip" 
   fi
 
   yum install -y epel-release yum-utils firewalld firewall-config
