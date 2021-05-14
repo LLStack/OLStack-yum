@@ -213,10 +213,11 @@ runInstall(){
         mariadbV='10.6'
         ;;
       esac
-      echo -e "[mariadb]\\nname = MariaDB\\nbaseurl = ${mariaDBRepoUrl}/${mariadbV}/centos8-amd64\\ngpgkey=${mariaDBRepoUrl}/RPM-GPG-KEY-MariaDB\\ngpgcheck=1" > /etc/yum.repos.d/mariadb.repo
+      rpm --import https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+      echo -e "[mariadb]\\nname = MariaDB\\nbaseurl = ${mariaDBRepoUrl}/${mariadbV}/centos/8/x86_64/\\ngpgkey=file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY\\ngpgcheck=1\\nenabled=1\\nmodule_hotfixes=1" > /etc/yum.repos.d/mariadb.repo
     elif [[ "${mysqlV}" = "5" ]]; then
     #elif [[ "${mysqlV}" = "6" || "${mysqlV}" = "7" || "${mysqlV}" = "8" || "${mysqlV}" = "9" ]]; then
-      rpm --import /tmp/LLStack-${envType}/keys/RPM-GPG-KEY-mysql
+      rpm --import /tmp/OLStack-${envType}/keys/RPM-GPG-KEY-mysql
       rpm -Uvh ${mysqlRepoUrl}/mysql-community-release-el8.rpm
       find /etc/yum.repos.d/ -maxdepth 1 -name "mysql-community*.repo" -type f -print0 | xargs -0 sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g"
       
@@ -236,7 +237,7 @@ runInstall(){
       find /etc/yum.repos.d/ -maxdepth 1 -name "remi*.repo" -type f -print0 | xargs -0 sed -i "$1"
     }
 
-    rpm --import /tmp/LLStack-${envType}/keys/RPM-GPG-KEY-remi
+    rpm --import /tmp/OLStack-${envType}/keys/RPM-GPG-KEY-remi
     rpm -Uvh ${phpRepoUrl}/enterprise/remi-release-8.rpm
 
     sedPhpRepo "s@${phpUrl}@${phpRepoUrl}@g"
@@ -311,7 +312,7 @@ runInstall(){
     sed -i "s@${LiteSpeedUrl}@${LiteSpeedRepoUrl}@g" ${LiteSpeedRepo}
   fi
 
-  yum clean all && yum makecache fast
+  yum clean all
 
   if [ "${mysqlV}" != '0' ]; then
     if [ "${installDB}" = "mariadb" ]; then
@@ -344,14 +345,14 @@ runInstall(){
       mkdir -p /usr/local/lsws/conf/vhosts/
     fi
 
-    cp -a /tmp/LLStack-${envType}/conf/httpd_config.xml /usr/local/lsws/conf/httpd_config.xml
-    cp -a /tmp/LLStack-${envType}/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf
-    cp -a /tmp/LLStack-${envType}/conf/docker.conf /usr/local/lsws/conf/templates/docker.conf
+    cp -a /tmp/OLStack-${envType}/conf/httpd_config.xml /usr/local/lsws/conf/httpd_config.xml
+    cp -a /tmp/OLStack-${envType}/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf
+    cp -a /tmp/OLStack-${envType}/conf/docker.conf /usr/local/lsws/conf/templates/docker.conf
     chown -R lsadm:nobody /usr/local/lsws/conf/
 
     mkdir -p /var/www/vhosts/localhost/{html,logs,certs}
     chown nobody:nobody /var/www/vhosts/localhost/ -R
-    cp -a /tmp/LLStack-${envType}/home/demo/public_html/* /var/www/vhosts/localhost/html/
+    cp -a /tmp/OLStack-${envType}/home/demo/public_html/* /var/www/vhosts/localhost/html/
 
     case ${phpV} in
       1)
@@ -381,7 +382,7 @@ runInstall(){
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
     if [ "${dbV}" = "1" ]; then
-      cp -a /tmp/LLStack-${envType}/DB/Adminer /var/www/vhosts/localhost/html/
+      cp -a /tmp/OLStack-${envType}/DB/Adminer /var/www/vhosts/localhost/html/
       sed -i "s/phpMyAdmin/Adminer/g" /var/www/vhosts/localhost/html/index.html
     elif [ "${dbV}" = "2" ]; then
       ## PHP 5.4 仅 PMA 4.0 LTS 支持
