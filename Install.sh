@@ -183,7 +183,7 @@ runInstall(){
   if [ ! -d "/tmp/LLStack-${envType}" ]; then
     cd /tmp || exit
     if [ ! -f "LLStack-${envType}.zip" ]; then
-      if ! curl -L --retry 3 -o "LLStack-${envType}.zip" "https://${GitFileUrl}/LLStack/OLStack-yum/archive/${envType}.zip"
+      if ! curl -L --retry 3 -o "LLStack-${envType}.zip" "https://${GitFileUrl}/LLStack/OLStack-yum/archive/refs/heads/${envType}.zip"
       then
         showError "LLStack-${envType} download failed!"
         exit
