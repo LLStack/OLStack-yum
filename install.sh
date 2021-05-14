@@ -180,16 +180,16 @@ runInstall(){
     phpMyAdminURL=${phpMyAdmin_CN}
   fi
 
-  if [ ! -d "/tmp/OLStack-${envType}" ]; then
+  if [ ! -d "/tmp/OLStack-yum-${envType}" ]; then
     cd /tmp || exit
-    if [ ! -f "OLStack-${envType}.zip" ]; then
-      if ! curl -L --retry 3 -o "OLStack-${envType}.zip" "${GitFileUrl}/LLStack/OLStack-yum/archive/refs/heads/${envType}.zip"
+    if [ ! -f "OLStack-yum-${envType}.zip" ]; then
+      if ! curl -L --retry 3 -o "OLStack-yum-${envType}.zip" "${GitFileUrl}/LLStack/OLStack-yum/archive/refs/heads/${envType}.zip"
       then
-        showError "OLStack-${envType} download failed!"
+        showError "OLStack-yum-${envType} download failed!"
         exit
       fi
     fi
-    unzip -q "OLStack-${envType}.zip" 
+    unzip -q "OLStack-yum-${envType}.zip" 
   fi
 
   yum install -y epel-release yum-utils firewalld firewall-config
@@ -217,7 +217,7 @@ runInstall(){
       echo -e "[mariadb]\\nname = MariaDB\\nbaseurl = ${mariaDBRepoUrl}/${mariadbV}/centos/8/x86_64/\\ngpgkey=file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY\\ngpgcheck=1\\nenabled=1\\nmodule_hotfixes=1" > /etc/yum.repos.d/mariadb.repo
     elif [[ "${mysqlV}" = "5" ]]; then
     #elif [[ "${mysqlV}" = "6" || "${mysqlV}" = "7" || "${mysqlV}" = "8" || "${mysqlV}" = "9" ]]; then
-      rpm --import /tmp/OLStack-${envType}/keys/RPM-GPG-KEY-mysql
+      rpm --import /tmp/OLStack-yum-${envType}/keys/RPM-GPG-KEY-mysql
       rpm -Uvh ${mysqlRepoUrl}/mysql-community-release-el8.rpm
       find /etc/yum.repos.d/ -maxdepth 1 -name "mysql-community*.repo" -type f -print0 | xargs -0 sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g"
       
@@ -237,7 +237,7 @@ runInstall(){
       find /etc/yum.repos.d/ -maxdepth 1 -name "remi*.repo" -type f -print0 | xargs -0 sed -i "$1"
     }
 
-    rpm --import /tmp/OLStack-${envType}/keys/RPM-GPG-KEY-remi
+    rpm --import /tmp/OLStack-yum-${envType}/keys/RPM-GPG-KEY-remi
     rpm -Uvh ${phpRepoUrl}/enterprise/remi-release-8.rpm
 
     sedPhpRepo "s@${phpUrl}@${phpRepoUrl}@g"
@@ -345,14 +345,14 @@ runInstall(){
       mkdir -p /usr/local/lsws/conf/vhosts/
     fi
 
-    cp -a /tmp/OLStack-${envType}/conf/httpd_config.xml /usr/local/lsws/conf/httpd_config.xml
-    cp -a /tmp/OLStack-${envType}/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf
-    cp -a /tmp/OLStack-${envType}/conf/docker.conf /usr/local/lsws/conf/templates/docker.conf
+    cp -a /tmp/OLStack-yum-${envType}/conf/httpd_config.xml /usr/local/lsws/conf/httpd_config.xml
+    cp -a /tmp/OLStack-yum-${envType}/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf
+    cp -a /tmp/OLStack-yum-${envType}/conf/docker.conf /usr/local/lsws/conf/templates/docker.conf
     chown -R lsadm:nobody /usr/local/lsws/conf/
 
     mkdir -p /var/www/vhosts/localhost/{html,logs,certs}
     chown nobody:nobody /var/www/vhosts/localhost/ -R
-    cp -a /tmp/OLStack-${envType}/home/demo/public_html/* /var/www/vhosts/localhost/html/
+    cp -a /tmp/OLStack-yum-${envType}/home/demo/public_html/* /var/www/vhosts/localhost/html/
 
     case ${phpV} in
       1)
@@ -382,7 +382,7 @@ runInstall(){
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
     if [ "${dbV}" = "1" ]; then
-      cp -a /tmp/OLStack-${envType}/DB/Adminer /var/www/vhosts/localhost/html/
+      cp -a /tmp/OLStack-yum-${envType}/DB/Adminer /var/www/vhosts/localhost/html/
       sed -i "s/phpMyAdmin/Adminer/g" /var/www/vhosts/localhost/html/index.html
     elif [ "${dbV}" = "2" ]; then
       ## PHP 5.4 仅 PMA 4.0 LTS 支持
@@ -435,8 +435,8 @@ runInstall(){
     #if [[ "${mysqlV}" = '1' || "${mysqlV}" = '2' ]]; then
     #  service mysql start
     #else
-    #  systemctl enable ${installDB}.service
-    #  systemctl start ${installDB}.service
+    systemctl enable ${installDB}.service
+    systemctl start ${installDB}.service
     #fi
 
     mysqladmin -u root password "${mysqlPWD}"
@@ -452,7 +452,7 @@ runInstall(){
 
   if [ "${LiteSpeedV}" != '0' ]; then
     LSPASSRAND=`head -c 100 /dev/urandom | tr -dc a-z0-9A-Z |head -c 16`
-    ENCRYPT_PASS=`/usr/local/lsws/admin/fcgi-bin/admin_php5 -q /usr/local/lsws/admin/misc/htpasswd.php $LSPASSRAND`
+    ENCRYPT_PASS=`/usr/local/lsws/admin/fcgi-bin/admin_php -q /usr/local/lsws/admin/misc/htpasswd.php $LSPASSRAND`
     echo "llstackadmin:$ENCRYPT_PASS" > /usr/local/lsws/admin/conf/htpasswd 
     touch /root/defaulthtpasswd
     echo "llstackadmin:$LSPASSRAND" > /root/defaulthtpasswd
@@ -461,9 +461,9 @@ runInstall(){
 
   #wget -P /root/ https://raw.githubusercontent.com/ivmm/LLStack/master/vhost.sh
 
-  if [[ -f "/usr/sbin/mysqld" || -f "/usr/sbin/php-check" || -f "/usr/local/lsws/bin/httpd" ]]; then
+  if [[ -f "/usr/sbin/mysqld" || -f "/usr/share/lsphp-default-version" || -f "/usr/local/lsws/bin/openlitespeed" ]]; then
     echo "================================================================"
-    echo -e "\\033[42m [LLStack] Install completed. \\033[0m"
+    echo -e "\\033[42m [OLStack-yum] Install completed. \\033[0m"
 
     if [ "${LiteSpeedV}" != '0' ]; then
       echo -e "\\033[34m Web Demo Site: \\033[0m http://${ipAddress}"
@@ -477,25 +477,25 @@ runInstall(){
     if [ "${phpV}" != '0' ]; then
       case ${phpV} in
       1)
-      echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php54/"
-      ;;
-      2)
-      echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php55/"
-      ;;
-      3)
       echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php56/"
       ;;
-      4)
+      2)
       echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php70/"
       ;;
-      5)
+      3)
       echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php71/"
       ;;
-      6)
+      4)
       echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php72/"
       ;;
-      7)
+      5)
       echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php73/"
+      ;;
+      6)
+      echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php74/"
+      ;;
+      7)
+      echo -e "\\033[34m PHP: \\033[0m /etc/opt/remi/php80/"
       ;;
     esac
     fi
