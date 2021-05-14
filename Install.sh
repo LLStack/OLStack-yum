@@ -189,7 +189,7 @@ runInstall(){
         exit
       fi
     fi
-    unzip -q "LLStack-${envType}.zip"
+    unzip -q "LLStack-${envType}.zip" 
   fi
 
   yum install -y epel-release yum-utils firewalld firewall-config
