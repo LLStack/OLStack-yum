@@ -81,7 +81,8 @@ runInstall(){
   echo "2) MariaDB-10.4"
   echo "3) MariaDB-10.5"
   echo "4) MariaDB-10.6 unstable"
-  echo "5) MySQL-8.0"
+  echo "5) Percona Server 5.7(MySQL)"
+  echo "6) Percona Server 8.0(MySQL)"
   echo "0) Not need"
   read -p 'MySQL [1-5,0]: ' -r -e -i 3 mysqlV
   if [ "${mysqlV}" = '' ]; then
