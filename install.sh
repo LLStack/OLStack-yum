@@ -277,16 +277,16 @@ runInstall(){
     echo 'Enable REMI REPO'
     rpm -Uvh ${phpRepoUrl}/enterprise/remi-release-8.rpm
 
-    sedPhpRepo "s@${phpUrl}@${phpRepoUrl}@g"
+    #sedPhpRepo "s@${phpUrl}@${phpRepoUrl}@g"
 
-    if [ "${freeV}" = "1" ]; then
-      sedPhpRepo "/\$basearch/{n;s/^baseurl=/#baseurl=/g}"
-      sedPhpRepo "/\$basearch/{n;n;s/^#mirrorlist=/mirrorlist=/g}"
-    elif [ "${freeV}" = "2" ]; then
-      sedPhpRepo "/\$basearch/{n;s/^#baseurl=/baseurl=/g}"
+    #if [ "${freeV}" = "1" ]; then
+    #  sedPhpRepo "/\$basearch/{n;s/^baseurl=/#baseurl=/g}"
+    #  sedPhpRepo "/\$basearch/{n;n;s/^#mirrorlist=/mirrorlist=/g}"
+    #elif [ "${freeV}" = "2" ]; then
+    #  sedPhpRepo "/\$basearch/{n;s/^#baseurl=/baseurl=/g}"
 
-      sedPhpRepo "/\$basearch/{n;n;s/^mirrorlist=/#mirrorlist=/g}"
-    fi
+    #  sedPhpRepo "/\$basearch/{n;n;s/^mirrorlist=/#mirrorlist=/g}"
+    #fi
 
     case ${phpV} in
       1)
