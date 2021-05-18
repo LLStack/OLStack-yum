@@ -369,11 +369,11 @@ runInstall(){
   if [ "${LiteSpeedV}" != '0' ]; then
     cd /tmp
     echo 'Download OpenLiteSpeed RPM Package'
-    if "${LiteSpeedV}" = '1' then
+    if [ "${LiteSpeedV}" = '1' ]; then
       OpenLiteSpeedVersionD=${OpenLiteSpeedVersionStable}
       wget ${LiteSpeedRepoUrl}/centos/8/x86_64/RPMS/${OpenLiteSpeedVersionD}.el8.x86_64.rpm
-    elif "${LiteSpeedV}" = '2' then
-      OpenLiteSpeedVersionD==${OpenLiteSpeedVersionEdge}
+    elif [ "${LiteSpeedV}" = '2' ];then
+      OpenLiteSpeedVersionD=${OpenLiteSpeedVersionEdge}
       wget ${LiteSpeedRepoUrl}/edge/centos/8/x86_64/RPMS/${OpenLiteSpeedVersionD}.el8.x86_64.rpm
     fi
     echo 'Install OLS and libnsl'
