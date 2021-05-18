@@ -28,13 +28,13 @@ mysqlUrl='http://repo.mysql.com'
 mariaDBUrl='http://yum.mariadb.org'
 phpUrl='https://rpms.remirepo.net'
 LiteSpeedUrl='http://rpms.litespeedtech.com'
-GitUrl='http://github.com'
+GitUrl='https://github.com/LLStack/OLStack-yum/archive/refs/heads'
 phpMyAdmin='https://files.phpmyadmin.net'
 mysqlUrl_CN='http://mirrors.ustc.edu.cn/mysql-repo'
 mariaDBUrl_CN='http://mirrors.ustc.edu.cn/mariadb/yum'
 phpUrl_CN='https://mirrors.ustc.edu.cn/remi'
 LiteSpeedUrl_CN='http://litespeed-rpm.mf8.biz'
-GitUrl_CN='http://gitee.com'
+GitUrl_CN='https://gitee.com/LLStack/OLStack-yum/repository/archive'
 phpMyAdmin_CN='https://phpmyadminfile.llstack.com'
 isUpdate='0'
 
@@ -184,20 +184,23 @@ runInstall(){
   if [ ! -d "/tmp/OLStack-yum-${envType}" ]; then
     cd /tmp || exit
     if [ ! -f "OLStack-yum-${envType}.zip" ]; then
-      if ! curl -L --retry 3 -o "OLStack-yum-${envType}.zip" "${GitFileUrl}/LLStack/OLStack-yum/archive/refs/heads/${envType}.zip"
+      if ! curl -L --retry 3 -o "OLStack-yum-${envType}.zip" "${GitFileUrl}/${envType}.zip"
       then
         showError "OLStack-yum-${envType} download failed!"
         exit
       fi
     fi
     unzip -q "OLStack-yum-${envType}.zip" 
+    if [ -d "/tmp/OLStack-yum" ]; then
+      mv /tmp/OLStack-yum /tmp/OLStack-yum-${envType}
+    fi
   fi
 
   yum install -y epel-release yum-utils firewalld firewall-config
 
   if [ "${mysqlV}" != '0' ]; then
   yum -y remove mariadb*
-    if [[ "${mysqlV}" = "1" || "${mysqlV}" = "2" || "${mysqlV}" = "3" || "${mysqlV}" = "4" || "${mysqlV}" = "5" ]]; then
+    if [[ "${mysqlV}" = "1" || "${mysqlV}" = "2" || "${mysqlV}" = "3" || "${mysqlV}" = "4" ]]; then
       mariadbV='10.5'
       installDB='mariadb'
       case ${mysqlV} in
@@ -214,22 +217,22 @@ runInstall(){
         mariadbV='10.6'
         ;;
       esac
-      rpm --import https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+      rpm --import ${mariaDBRepoUrl}/RPM-GPG-KEY-MariaDB
       echo -e "[mariadb]\\nname = MariaDB\\nbaseurl = ${mariaDBRepoUrl}/${mariadbV}/centos/8/x86_64/\\ngpgkey=file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY\\ngpgcheck=1\\nenabled=1\\nmodule_hotfixes=1" > /etc/yum.repos.d/mariadb.repo
     elif [[ "${mysqlV}" = "5" ]]; then
     #elif [[ "${mysqlV}" = "6" || "${mysqlV}" = "7" || "${mysqlV}" = "8" || "${mysqlV}" = "9" ]]; then
-      rpm --import /tmp/OLStack-yum-${envType}/keys/RPM-GPG-KEY-mysql
-      rpm -Uvh ${mysqlRepoUrl}/mysql-community-release-el8.rpm
+      rpm -Uvh ${mysqlRepoUrl}/mysql80-community-release-el8.rpm
       find /etc/yum.repos.d/ -maxdepth 1 -name "mysql-community*.repo" -type f -print0 | xargs -0 sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g"
+      yum module disable mysql
       
       installDB='mysqld'
 
-      case ${mysqlV} in
-        5)
-        yum-config-manager --enable mysql80-community
-        #yum-config-manager --disable mysql56-community mysql57-community mysql80-community
-        ;;
-      esac
+      #case ${mysqlV} in
+      #  5)
+      #  yum-config-manager --enable mysql80-community
+      #  yum-config-manager --disable mysql56-community mysql57-community mysql80-community
+      #  ;;
+      #esac
     fi
   fi
 
@@ -238,7 +241,6 @@ runInstall(){
       find /etc/yum.repos.d/ -maxdepth 1 -name "remi*.repo" -type f -print0 | xargs -0 sed -i "$1"
     }
 
-    rpm --import /tmp/OLStack-yum-${envType}/keys/RPM-GPG-KEY-remi
     rpm -Uvh ${phpRepoUrl}/enterprise/remi-release-8.rpm
 
     sedPhpRepo "s@${phpUrl}@${phpRepoUrl}@g"
@@ -389,9 +391,9 @@ runInstall(){
       ## PHP 5.4 仅 PMA 4.0 LTS 支持
       if [ "${phpV}}" = "1" || "${phpV}" = "2" ]; then
         cd /var/www/vhosts/localhost/html/
-        wget ${phpMyAdminURL}/phpMyAdmin/4.9.7/phpMyAdmin-4.9.7-all-languages.zip
-        unzip phpMyAdmin-4.9.7-all-languages.zip
-        rm -rf phpMyAdmin-4.9.7-all-languages.zip
+        wget ${phpMyAdminURL}/phpMyAdmin/4.9.7/phpMyAdmin-4.9.7-all-languages.tar.gz
+        tar xzf phpMyAdmin-4.9.7-all-languages.tar.gz
+        rm -rf phpMyAdmin-4.9.7-all-languages.tar.gz
         mv phpMyAdmin-4.9.7-all-languages phpMyAdmin
       ## PHP 5.5-7.0 仅 PMA 4.8 LTS 支持
       #elif [ "${phpV}}" = "3" || "${phpV}" = "4" || "${phpV}" = "5" ]; then
@@ -404,9 +406,9 @@ runInstall(){
       ## PHP 7.1+ 支持 4.8，5.0+
       else
         cd /var/www/vhosts/localhost/html/
-        wget ${phpMyAdminURL}/phpMyAdmin/5.1.0/phpMyAdmin-5.1.0-all-languages.zip
-        unzip phpMyAdmin-5.1.0-all-languages.zip
-        rm -rf phpMyAdmin-5.1.0-all-languages.zip
+        wget ${phpMyAdminURL}/phpMyAdmin/5.1.0/phpMyAdmin-5.1.0-all-languages.tar.gz
+        tar xzf phpMyAdmin-5.1.0-all-languages.tar.gz
+        rm -rf phpMyAdmin-5.1.0-all-languages.tar.gz
         mv phpMyAdmin-5.1.0-all-languages phpMyAdmin
       fi
     fi
