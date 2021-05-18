@@ -200,6 +200,7 @@ runInstall(){
 
   if [ "${mysqlV}" != '0' ]; then
   yum -y remove mariadb*
+  yum module disable mysql
     if [[ "${mysqlV}" = "1" || "${mysqlV}" = "2" || "${mysqlV}" = "3" || "${mysqlV}" = "4" ]]; then
       mariadbV='10.5'
       installDB='mariadb'
@@ -223,7 +224,6 @@ runInstall(){
     #elif [[ "${mysqlV}" = "6" || "${mysqlV}" = "7" || "${mysqlV}" = "8" || "${mysqlV}" = "9" ]]; then
       rpm -Uvh ${mysqlRepoUrl}/mysql80-community-release-el8.rpm
       find /etc/yum.repos.d/ -maxdepth 1 -name "mysql-community*.repo" -type f -print0 | xargs -0 sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g"
-      yum module disable mysql
       
       installDB='mysqld'
 
