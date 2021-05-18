@@ -24,13 +24,13 @@ envType='master'
 ipAddress=`curl -s -4 https://api.ip.sb/ip`
 mysqlPWD=$(echo -n ${RANDOM} | md5sum | cut -b -16)
 
-mysqlUrl='http://repo.mysql.com'
+mysqlUrl='http://repo.percona.com'
 mariaDBUrl='http://yum.mariadb.org'
 phpUrl='https://rpms.remirepo.net'
 LiteSpeedUrl='http://rpms.litespeedtech.com'
 GitUrl='https://github.com/LLStack/OLStack-yum/archive/refs/heads'
 phpMyAdmin='https://files.phpmyadmin.net'
-mysqlUrl_CN='http://mirrors.ustc.edu.cn/mysql-repo'
+mysqlUrl_CN='http://mirrors.ustc.edu.cn/percona'
 mariaDBUrl_CN='http://mirrors.ustc.edu.cn/mariadb/yum'
 phpUrl_CN='https://mirrors.ustc.edu.cn/remi'
 LiteSpeedUrl_CN='http://litespeed-rpm.mf8.biz'
@@ -200,7 +200,7 @@ runInstall(){
 
   if [ "${mysqlV}" != '0' ]; then
   yum -y remove mariadb*
-  yum module disable mysql
+  yum module disable mysql -y
     if [[ "${mysqlV}" = "1" || "${mysqlV}" = "2" || "${mysqlV}" = "3" || "${mysqlV}" = "4" ]]; then
       mariadbV='10.5'
       installDB='mariadb'
@@ -220,19 +220,21 @@ runInstall(){
       esac
       rpm --import ${mariaDBRepoUrl}/RPM-GPG-KEY-MariaDB
       echo -e "[mariadb]\\nname = MariaDB\\nbaseurl = ${mariaDBRepoUrl}/${mariadbV}/centos/8/x86_64/\\ngpgkey=file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY\\ngpgcheck=1\\nenabled=1\\nmodule_hotfixes=1" > /etc/yum.repos.d/mariadb.repo
-    elif [[ "${mysqlV}" = "5" ]]; then
-    #elif [[ "${mysqlV}" = "6" || "${mysqlV}" = "7" || "${mysqlV}" = "8" || "${mysqlV}" = "9" ]]; then
-      rpm -Uvh ${mysqlRepoUrl}/mysql80-community-release-el8.rpm
-      find /etc/yum.repos.d/ -maxdepth 1 -name "mysql-community*.repo" -type f -print0 | xargs -0 sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g"
-      
-      installDB='mysqld'
+    #elif [[ "${mysqlV}" = "5" ]]; then
+    elif [[ "${mysqlV}" = "5" || "${mysqlV}" = "6" ]]; then
+      rpm -Uvh ${mysqlRepoUrl}/yum/percona-release-latest.noarch.rpm
 
-      #case ${mysqlV} in
-      #  5)
-      #  yum-config-manager --enable mysql80-community
-      #  yum-config-manager --disable mysql56-community mysql57-community mysql80-community
-      #  ;;
-      #esac
+      installDB='mysqld'
+      
+      case ${mysqlV} in
+        5)
+        percona-release setup ps57 -y
+        ;;
+        6)
+        percona-release setup ps80 -y
+        ;;
+      esac
+            find /etc/yum.repos.d/ -maxdepth 1 -name "percona-*.repo" -type f -print0 | xargs -0 sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g"
     fi
   fi
 
@@ -322,15 +324,15 @@ runInstall(){
       yum install -y MariaDB-server MariaDB-client MariaDB-common
       mysql_install_db --user=mysql
     elif [ "${installDB}" = "mysqld" ]; then
-      yum install -y mysql-community-server
+      yum install -y percona-server-client percona-server-server
 
-      #if [ "${mysqlV}" = "6" ]; then
-      #  mysql_install_db --user=mysql
-      #elif [ "${mysqlV}" = "7" ]; then
-      #  mysqld --initialize-insecure --user=mysql --explicit_defaults_for_timestamp
-      #else
+      if [ "${mysqlV}" = "5" ]; then
+        yum install -y Percona-Server-client-57 Percona-Server-server-57
+      elif [ "${mysqlV}" = "6" ]; then
+        yum install -y percona-server-client percona-server-server
+      fi
+
         mysqld --initialize-insecure --user=mysql
-      #fi
 
       #if [ "${mysqlV}" = "9" ]; then // MySQL 8.0 after setting
       sed -i "s@# default-authentication-plugin=mysql_native_password@default-authentication-plugin=mysql_native_password@g" /etc/my.cnf
