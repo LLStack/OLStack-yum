@@ -108,7 +108,7 @@ runInstall(){
 
   showNotice "(Step 5/7) Install OpenLiteSpeed or Not?"
   echo "1) OpenLiteSpeed Stable"
-  echo "1) OpenLiteSpeed Edge"
+  echo "2) OpenLiteSpeed Edge"
   echo "0) Not need"
   read -p 'LiteSpeed [1-2,0]: ' -r -e -i 1 LiteSpeedV
   if [ "${LiteSpeedV}" = '' ]; then
@@ -430,7 +430,7 @@ runInstall(){
       sed -i "s/phpMyAdmin/Adminer/g" /var/www/vhosts/localhost/html/index.html
     elif [ "${dbV}" = "2" ]; then
       ## PHP 5.4 仅 PMA 4.0 LTS 支持
-      if [[ "${phpV}}" = "1" || "${phpV}" = "2" ]]; then
+      if [[ "${phpV}" = "1" || "${phpV}" = "2" ]]; then
         echo 'Install phpMyAdmin 4.9'
         cd /var/www/vhosts/localhost/html/
         wget ${phpMyAdminURL}/phpMyAdmin/4.9.7/phpMyAdmin-4.9.7-all-languages.tar.gz
