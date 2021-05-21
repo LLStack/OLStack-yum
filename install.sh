@@ -26,7 +26,7 @@ mysqlPWD=$(echo -n ${RANDOM} | md5sum | cut -b -16)
 
 mysqlUrl='http://repo.percona.com'
 mariaDBUrl='http://yum.mariadb.org'
-phpUrl='https://rpms.remirepo.net'
+phpUrl='http://rpms.remirepo.net'
 LiteSpeedUrl='http://rpms.litespeedtech.com'
 GitUrl='https://github.com/LLStack/OLStack-yum/archive/refs/heads'
 phpMyAdmin='https://files.phpmyadmin.net'
@@ -117,10 +117,11 @@ runInstall(){
   fi
 
   showNotice "(Step 6/7) Select the DB tool version"
-  echo "1) Adminer"
-  echo "2) phpMyAdmin"
+  echo "1) AMySQL"
+  echo "2) Adminer"
+  echo "3) phpMyAdmin"
   echo "0) Not need"
-  read -p 'DB tool [1-2,0]: ' -r -e -i 0 dbV
+  read -p 'DB tool [1-3,0]: ' -r -e -i 1 dbV
   if [ "${dbV}" = '' ]; then
     showError 'Invalid DB tool version'
     exit
@@ -230,18 +231,26 @@ runInstall(){
     #elif [[ "${mysqlV}" = "5" ]]; then
     elif [[ "${mysqlV}" = "5" || "${mysqlV}" = "6" ]]; then
       echo 'Enable PerconaDB REPO'
-      rpm -Uvh ${mysqlRepoUrl}/yum/percona-release-latest.noarch.rpm
+      #rpm -Uvh ${mysqlRepoUrl}/yum/percona-release-latest.noarch.rpm
+      #rpm --import /tmp/OLStack-yum-${envType}/keys/RPM-GPG-KEY-Percona
+      rpm --import /tmp/OLStack-yum-${envType}/keys/PERCONA-PACKAGING-KEY
       yum module disable mysql -y
       installDB='mysqld'
       
       case ${mysqlV} in
         5)
         echo 'Setup PerconaDB 5.7'
-        percona-release setup ps57 -y
+        cp -a /tmp/OLStack-yum-${envType}/repo/percona-ps-57-release.repo /etc/yum.repos.d/percona-ps-57-release.repo
+        if [ "${freeV}" = "2" ]; then
+          sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g" /etc/yum.repos.d/percona-ps-57-release.repo
+        fi
         ;;
         6)
         echo 'Setup PerconaDB 8.0'
-        percona-release setup ps80 -y
+        cp -a /tmp/OLStack-yum-${envType}/repo/percona-ps-80-release.repo /etc/yum.repos.d/percona-ps-80-release.repo
+        if [ "${freeV}" = "2" ]; then
+          sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g" /etc/yum.repos.d/percona-ps-80-release.repo
+        fi
         ;;
       esac
             find /etc/yum.repos.d/ -maxdepth 1 -name "percona-*.repo" -type f -print0 | xargs -0 sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g"
@@ -277,16 +286,15 @@ runInstall(){
     echo 'Enable REMI REPO'
     rpm -Uvh ${phpRepoUrl}/enterprise/remi-release-8.rpm
 
-    #sedPhpRepo "s@${phpUrl}@${phpRepoUrl}@g"
+    sedPhpRepo "s@${phpUrl}@${phpRepoUrl}@g"
 
-    #if [ "${freeV}" = "1" ]; then
-    #  sedPhpRepo "/\$basearch/{n;s/^baseurl=/#baseurl=/g}"
-    #  sedPhpRepo "/\$basearch/{n;n;s/^#mirrorlist=/mirrorlist=/g}"
-    #elif [ "${freeV}" = "2" ]; then
-    #  sedPhpRepo "/\$basearch/{n;s/^#baseurl=/baseurl=/g}"
-
-    #  sedPhpRepo "/\$basearch/{n;n;s/^mirrorlist=/#mirrorlist=/g}"
-    #fi
+    if [ "${freeV}" = "1" ]; then
+      sedPhpRepo "/\$basearch/{n;s/^baseurl=/#baseurl=/g}"
+      sedPhpRepo "/\$basearch/{n;n;n;s/^#mirrorlist=/mirrorlist=/g}"
+    elif [ "${freeV}" = "2" ]; then
+      sedPhpRepo "/\$basearch/{n;s/^#baseurl=/baseurl=/g}"
+      sedPhpRepo "/\$basearch/{n;n;n;s/^mirrorlist=/#mirrorlist=/g}"
+    fi
 
     case ${phpV} in
       1)
@@ -425,10 +433,18 @@ runInstall(){
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
     if [ "${dbV}" = "1" ]; then
+      echo 'Install AMySQL'
+      cd /var/www/vhosts/localhost/html/
+      wget http://amh.sh/file/AMS/amysql-1.6.zip
+      unzip -q amysql-1.6.zip
+      rm -rf amysql-1.6.zip
+      mv amysql-1.6 amysql
+      ed -i "s/phpMyAdmin/AMysql/g" /var/www/vhosts/localhost/html/index.html
+    elif [ "${dbV}" = "2" ]; then
       echo 'Install Adminer'
       cp -a /tmp/OLStack-yum-${envType}/DB/Adminer /var/www/vhosts/localhost/html/
       sed -i "s/phpMyAdmin/Adminer/g" /var/www/vhosts/localhost/html/index.html
-    elif [ "${dbV}" = "2" ]; then
+    elif [ "${dbV}" = "3" ]; then
       ## PHP 5.4 仅 PMA 4.0 LTS 支持
       if [[ "${phpV}" = "1" || "${phpV}" = "2" ]]; then
         echo 'Install phpMyAdmin 4.9'

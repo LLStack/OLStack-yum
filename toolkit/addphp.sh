@@ -72,6 +72,7 @@ install_lsphp(){
       mkdir -p /usr/local/lsws/lsphp80/bin/
       if [ ! -f "/usr/local/lsws/lsphp80/bin/lsphp" ]; then
         ln -s /opt/remi/php80/root/usr/bin/lsphp /usr/local/lsws/lsphp80/bin/lsphp
+      fi
       ;;
     esac
 }
