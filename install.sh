@@ -289,7 +289,11 @@ runInstall(){
       find /etc/yum.repos.d/ -maxdepth 1 -name "remi*.repo" -type f -print0 | xargs -0 sed -i "$1"
     }
     echo 'Enable REMI REPO'
-    rpm -Uvh ${phpRepoUrl}/enterprise/remi-release-8.rpm
+    if [ -f "/etc/alinux-release" ]; then
+      rpm -Uvh --nodeps ${phpRepoUrl}/enterprise/remi-release-8.rpm
+    else
+      rpm -Uvh ${phpRepoUrl}/enterprise/remi-release-8.rpm
+    fi
 
     sedPhpRepo "s@${phpUrl}@${phpRepoUrl}@g"
 
@@ -368,16 +372,16 @@ runInstall(){
     esac
   fi
 
-  if [ "${LiteSpeedV}" != '0' ]; then
-  echo 'Enable LiteSpeedTech REPO'
-    rpm -Uvh ${LiteSpeedRepoUrl}/centos/litespeed-repo-1.2-1.el8.noarch.rpm
+  #if [ "${LiteSpeedV}" != '0' ]; then
+  #echo 'Enable LiteSpeedTech REPO'
+  #  rpm -Uvh ${LiteSpeedRepoUrl}/centos/litespeed-repo-1.2-1.el8.noarch.rpm
 
-    LiteSpeedRepo=/etc/yum.repos.d/litespeed.repo
+  #  LiteSpeedRepo=/etc/yum.repos.d/litespeed.repo
 
-    sed -i "s@${LiteSpeedUrl}@${LiteSpeedRepoUrl}@g" ${LiteSpeedRepo}
-  fi
+  #  sed -i "s@${LiteSpeedUrl}@${LiteSpeedRepoUrl}@g" ${LiteSpeedRepo}
+  #fi
 
-  yum clean all
+  #yum clean all
 
   if [ "${LiteSpeedV}" != '0' ]; then
     cd /tmp
