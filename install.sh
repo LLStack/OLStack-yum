@@ -447,7 +447,7 @@ runInstall(){
       wget http://amh.sh/file/AMS/amysql-1.6.zip
       unzip -q amysql-1.6.zip
       rm -rf amysql-1.6.zip
-      mv amysql-1.6 amysql
+      mv amysql-1.6 AMysql
       sed -i "s/phpMyAdmin/AMysql/g" /var/www/vhosts/localhost/html/index.html
     elif [ "${dbV}" = "2" ]; then
       echo 'Install Adminer'
