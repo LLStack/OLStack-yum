@@ -135,6 +135,7 @@ while [ ! -z "${1}" ]; do
             ;;
         -[dD] | -default | --default)
             make_default
+            lsws_restart
             ;;
         *) 
             help_message

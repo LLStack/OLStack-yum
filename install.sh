@@ -519,7 +519,7 @@ runInstall(){
     if [ "${mysqlV}" = "6" ]; then
     mysql -u root -p"${mysqlPWD}" -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY \"${mysqlPWD}\";FLUSH PRIVILEGES;"
     fi
-    ehco 'Add DB Root Password to initialPWD'
+    echo 'Add DB Root Password to initialPWD'
     echo "${mysqlPWD}" > /var/www/vhosts/initialPWD.txt
     rm -rf /var/lib/mysql/test
   fi
