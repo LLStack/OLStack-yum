@@ -200,7 +200,12 @@ runInstall(){
     fi
   fi
   echo 'Install EPEL & Firewalld'
-  yum install -y epel-release yum-utils firewalld firewall-config
+
+  if [ -f "/etc/alinux-release" ]; then
+    yum install -y yum-utils firewalld firewall-config
+  else
+    yum install -y epel-release yum-utils firewalld firewall-config
+  fi
 
   if [ "${mysqlV}" != '0' ]; then
   echo 'Remove Native DB'
@@ -439,7 +444,7 @@ runInstall(){
       unzip -q amysql-1.6.zip
       rm -rf amysql-1.6.zip
       mv amysql-1.6 amysql
-      ed -i "s/phpMyAdmin/AMysql/g" /var/www/vhosts/localhost/html/index.html
+      sed -i "s/phpMyAdmin/AMysql/g" /var/www/vhosts/localhost/html/index.html
     elif [ "${dbV}" = "2" ]; then
       echo 'Install Adminer'
       cp -a /tmp/OLStack-yum-${envType}/DB/Adminer /var/www/vhosts/localhost/html/
