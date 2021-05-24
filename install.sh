@@ -16,6 +16,29 @@
 # Usage: sh install.sh
 #
 
+echow(){
+    FLAG=${1}
+    shift
+    echo -e "\033[1m${EPACE}${FLAG}\033[0m${@}"
+}
+
+help_message(){
+    echo -e "\033[1mOPTIONS\033[0m"
+    echow '-p, --php, --lsphp [PHP_Verion]'
+    echo "${EPACE}${EPACE}Will install the lsphp version in OLStack, eg: -p 2 or --php 3.  1=php56,2=php70,3=php71,4=php72,5=php73,6=php74,7=php80"
+    echow '-m, --mysql, --MYSQL [MySQL_Version]'
+    echo "${EPACE}${EPACE}will install the PerconaDB or MariaDB in OLStack,eg: -m 3 or --mysql 5. 1=MariaDB-10.3,2=MariaDB-10.4,3=MariaDB-10.5,4=MariaDB-10.6,5=Percona-5.7,6=Percona-8.0" 
+    echow '-l, --ols, --openlitespeed [OpenLiteSpeed_Option]'
+    echo "${EPACE}${EPACE}Will install the OpenLiteSpeed in OLStack, eg: -l 1 or --ols 2.  1=OpenLiteSpeed Stable,2=OpenLiteSpeed Edge"
+    echow '-d, --dbtool, --DBTOOL [DBTool_Option]'
+    echo "${EPACE}${EPACE}Will install the DBTool in OLStack, eg: -d 1 or --dbtool 2.  1=AMySQL,2=Adminer.3=phpMyAdmin"
+    echow '-cC, --china, --CN [DBTool_Option]'
+    echo "${EPACE}${EPACE}Help Accelerate Chinese Network, eg: -c 1 or --CN 2.  1=Default Network,2=Chinese NetWork Acclerate"
+    echow '-H, --help'
+    echo "${EPACE}${EPACE}Display help and exit."       
+    exit 0
+}
+
 # check root
 [ "$(id -g)" != '0' ] && die 'Script must be run as root.'
 
@@ -37,6 +60,11 @@ LiteSpeedUrl_CN='http://litespeed-rpm.mf8.biz'
 GitUrl_CN='https://gitee.com/LLStack/OLStack-yum/repository/archive'
 phpMyAdmin_CN='https://phpmyadminfile.llstack.com'
 isUpdate='0'
+mysqlV='0'
+phpV='0'
+LiteSpeedV='0'
+dbV='0'
+freeV='1'
 
 OpenLiteSpeedVersionStable='openlitespeed-1.6.21-1'
 OpenLiteSpeedVersionEdge='openlitespeed-1.7.10-1'
@@ -151,6 +179,10 @@ runInstall(){
 #      showError 'Invalid Activation method'
 #      exit
 #  fi
+
+}
+
+doInstall(){
 
   echo 'Detecting Dependencies'
   [ "${isUpdate}" = '1' ] && yum update -y
@@ -482,7 +514,7 @@ runInstall(){
     fi
   fi
 
-  if [ "${dbV}" = "2" ]; then
+  if [ "${dbV}" = "3" ]; then
   echo 'Setup phpMyAdmin'
   mkdir -p /var/www/vhosts/localhost/html/phpMyAdmin/tmp/
   chmod 0777 /var/www/vhosts/localhost/html/phpMyAdmin/tmp/
@@ -601,18 +633,7 @@ runInstall(){
   fi
 }
 
-while :
-do
-clear 
-  echo '    /\  \     /\__\     /\  \     /\  \     /\  \     /\  \     /\__\  '
-  echo '   /::\  \   /:/  /    /::\  \    \:\  \   /::\  \   /::\  \   /:/ _/_ '
-  echo '  /:/\:\__\ /:/__/    /\:\:\__\   /::\__\ /::\:\__\ /:/\:\__\ /::-"\__\'
-  echo '  \:\/:/  / \:\  \    \:\:\/__/  /:/\/__/ \/\::/  / \:\ \/__/ \;:;-",-"'
-  echo '   \::/  /   \:\__\    \::/  /   \/__/      /:/  /   \:\__\    |:|  |  '
-  echo '    \/__/     \/__/     \/__/               \/__/     \/__/     \|__|  '
-  echo ''
-  echo -e "For more details see \033[4mhttps://llstack.com\033[0m"
-  echo ''
+preInstall(){
   showNotice 'Please select your operation:'
   echo '1) Install'
   echo '2) Upgrade packages'
@@ -622,6 +643,7 @@ clear
     1)
       clear
       runInstall
+      doInstall
     exit
     ;;
     2)
@@ -635,4 +657,57 @@ clear
     exit
     ;;
   esac
+}
+
+main() {
+    if [ -n "$1" ]; then
+        preInstall
+    else
+        doInstall "${mysqlV}" "${phpV}" "${LiteSpeedV}" "${dbV}" "${freeV}"
+    fi
+}
+
+check_input(){
+    if [ -z "${1}" ]; then
+        preInstall
+    fi
+}
+
+check_input ${1}
+while [ ! -z "${1}" ]; 
+do
+clear 
+  echo '    /\  \     /\__\     /\  \     /\  \     /\  \     /\  \     /\__\  '
+  echo '   /::\  \   /:/  /    /::\  \    \:\  \   /::\  \   /::\  \   /:/ _/_ '
+  echo '  /:/\:\__\ /:/__/    /\:\:\__\   /::\__\ /::\:\__\ /:/\:\__\ /::-"\__\'
+  echo '  \:\/:/  / \:\  \    \:\:\/__/  /:/\/__/ \/\::/  / \:\ \/__/ \;:;-",-"'
+  echo '   \::/  /   \:\__\    \::/  /   \/__/      /:/  /   \:\__\    |:|  |  '
+  echo '    \/__/     \/__/     \/__/               \/__/     \/__/     \|__|  '
+  echo ''
+  echo -e "For more details see \033[4mhttps://llstack.com\033[0m"
+  echo ''
+      case ${1} in
+        -[hH] | -help | --help)
+            help_message
+            ;;
+        -[mM] | -mysql | --mysql) shift
+            mysqlV="${1}"
+            ;;
+        -[pP] | -php | --lsphp) shift
+            phpV="${1}"
+            ;;
+        -[lL] | -ols | --openlitespeed) shift
+            LiteSpeedV="${1}"
+            ;;
+        -[dD] | -dbtool | --DBTOOL) shift
+            dbV="${1}"
+            ;;
+        -[cC] | -China | --CN) shift
+            freeV="${1}"
+            ;;    
+    esac
+    shift
 done
+
+  #Run it
+  main "$@" 2>&1 | tee /root/olstack-yum-all.log
