@@ -6,10 +6,10 @@
 # Home: https://www.llstack.com
 # Blog: https://www.mf8.biz
 #
-# * LiteSpeed Enterprise Web Server
-# * MySQL 8.0 (MariaDB 10.3/10.4/10.5)
+# * OpenLiteSpeed Web Server
+# * Percona 5.7 8.0 (MariaDB 10.3/10.4/10.5)
 # * PHP 5.6/7.0/7.1/7.2/7.3/7.4/8.0
-# * phpMyAdmin(Adminer)
+# * phpMyAdmin/Adminer/AMysql
 #
 # https://github.com/LLStack/OLStack-yum/
 #
@@ -437,7 +437,7 @@ doInstall(){
     echo 'Copy OLS config'
     cp -a /tmp/OLStack-yum-${envType}/conf/httpd_config.xml /usr/local/lsws/conf/httpd_config.xml
     cp -a /tmp/OLStack-yum-${envType}/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf
-    cp -a /tmp/OLStack-yum-${envType}/conf/docker.conf /usr/local/lsws/conf/templates/docker.conf
+    cp -a /tmp/OLStack-yum-${envType}/conf/llstack.conf /usr/local/lsws/conf/templates/llstack.conf
     chown -R lsadm:nobody /usr/local/lsws/conf/
 
     echo 'Mkdir localhost'

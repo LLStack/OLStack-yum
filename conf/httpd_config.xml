@@ -212,8 +212,8 @@
   </listenerList>
   <vhTemplateList>
     <vhTemplate>
-      <name>docker</name>
-      <templateFile>$SERVER_ROOT/conf/templates/docker.xml</templateFile>
+      <name>llstack</name>
+      <templateFile>$SERVER_ROOT/conf/templates/llstack.xml</templateFile>
       <listeners>HTTP, HTTPS</listeners>
       <member>
         <vhName>localhost</vhName>
