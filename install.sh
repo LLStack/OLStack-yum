@@ -58,16 +58,17 @@ mariaDBUrl_CN='http://mirrors.ustc.edu.cn/mariadb/yum'
 phpUrl_CN='https://mirrors.ustc.edu.cn/remi'
 LiteSpeedUrl_CN='http://litespeed-rpm.mf8.biz'
 GitUrl_CN='https://gitee.com/LLStack/OLStack-yum/repository/archive'
-phpMyAdmin_CN='https://phpmyadminfile.llstack.com'
+phpMyAdmin_CN='https://phpmyadmin.files.llstack.com'
 isUpdate='0'
 mysqlV='0'
 phpV='0'
+HttpdV='0'
 LiteSpeedV='0'
 dbV='0'
 freeV='1'
 
-OpenLiteSpeedVersionStable='openlitespeed-1.6.21-1'
-OpenLiteSpeedVersionEdge='openlitespeed-1.7.10-1'
+OpenLiteSpeedVersionStable='openlitespeed-1.7.11-1'
+OpenLiteSpeedVersionEdge='openlitespeed-1.7.11-1'
 
 # show success message
 showOk(){
@@ -88,7 +89,7 @@ showNotice(){
 runInstall(){
   showNotice 'Installing...'
 
-  showNotice '(Step 1/7) Update YUM packages'
+  showNotice '(Step 1) Update YUM packages'
 
   while true; do
     read -p "Please answer yes or no. [Y/n]" yn
@@ -98,14 +99,14 @@ runInstall(){
     esac
   done
 
-  showNotice '(Step 2/7) Input server IPv4 Address'
+  showNotice '(Step 2) Input server IPv4 Address'
   read -p "IP address: " -r -e -i "${ipAddress}" ipAddress
   if [ "${ipAddress}" = '' ]; then
     showError 'Invalid IP Address'
     exit
   fi
 
-  showNotice "(Step 3/7) Select the MySQL version"
+  showNotice "(Step 3) Select the MySQL version"
   echo "1) MariaDB-10.3"
   echo "2) MariaDB-10.4"
   echo "3) MariaDB-10.5"
@@ -119,7 +120,7 @@ runInstall(){
     exit
   fi
 
-  showNotice "(Step 4/7) Select the PHP version"
+  showNotice "(Step 4) Select the PHP version"
   echo "1) PHP-5.6"
   echo "2) PHP-7.0"
   echo "3) PHP-7.1"
@@ -134,7 +135,7 @@ runInstall(){
     exit
   fi
 
-  showNotice "(Step 5/7) Install OpenLiteSpeed or Not?"
+  showNotice "(Step 5) Install OpenLiteSpeed or Not?"
   echo "1) OpenLiteSpeed Stable"
   echo "2) OpenLiteSpeed Edge"
   echo "0) Not need"
@@ -144,7 +145,16 @@ runInstall(){
     exit
   fi
 
-  showNotice "(Step 6/7) Select the DB tool version"
+  showNotice "(Step 6) Install Apache HTTPD 2.4 as backend or Not?"
+  echo "1) Apache HTTPD 2.4 Backend"
+  echo "0) Not need"
+  read -p 'LiteSpeed [1,0]: ' -r -e -i 1 HttpdV
+  if [ "${HttpdV}" = '' ]; then
+    showError 'Invalid LiteSpeed select'
+    exit
+  fi
+
+  showNotice "(Step 7) Select the DB tool version"
   echo "1) AMySQL"
   echo "2) Adminer"
   echo "3) phpMyAdmin"
@@ -155,7 +165,7 @@ runInstall(){
     exit
   fi
 
-  showNotice "(Step 7/7) Use a mirror server to download rpms"
+  showNotice "(Step 8) Use a mirror server to download rpms"
   echo "1) Source station"
   echo "2) China Mirror station"
   read -p 'Proxy server [1-2]: ' -r -e -i 2 freeV
@@ -340,69 +350,51 @@ doInstall(){
     case ${phpV} in
       1)
       echo 'Install PHP56'
-      yum install -y php56-php-litespeed php56-php-cli php56-php-bcmath php56-php-gd php56-php-mbstring php56-php-mcrypt php56-php-mysqlnd php56-php-opcache php56-php-pdo php56-php-pecl-crypto php56-php-pecl-geoip php56-php-pecl-zip php56-php-recode php56-php-snmp php56-php-soap php56-php-xml
-      mkdir -p /usr/local/lsws/lsphp56/bin/
-      ln -s /opt/remi/php56/root/usr/bin/lsphp /usr/local/lsws/lsphp56/bin/lsphp
-      ln -s /opt/remi/php56/root/usr/bin/php /usr/bin/php
-      touch /usr/share/lsphp-default-version
-      echo "lsphp56" > /usr/share/lsphp-default-version
+      yum install -y php56-php-cli php56-php-bcmath php56-php-gd php56-php-mbstring php56-php-mcrypt php56-php-mysqlnd php56-php-opcache php56-php-pdo php56-php-pecl-crypto php56-php-pecl-geoip php56-php-pecl-zip php56-php-recode php56-php-snmp php56-php-soap php56-php-xml
+      phpInsVer = '56'
       ;;
       2)
       echo 'Install PHP70'
-      yum install -y php70-php-litespeed php70-php-cli php70-php-bcmath php70-php-gd php70-php-json php70-php-mbstring php70-php-mcrypt php70-php-mysqlnd php70-php-opcache php70-php-pdo php70-php-pecl-crypto php70-php-pecl-geoip php70-php-pecl-zip php70-php-recode php70-php-snmp php70-php-soap php70-php-xml
-      mkdir -p /usr/local/lsws/lsphp70/bin/
-      ln -s /opt/remi/php70/root/usr/bin/lsphp /usr/local/lsws/lsphp70/bin/lsphp
-      ln -s /opt/remi/php70/root/usr/bin/php /usr/bin/php
-      touch /usr/share/lsphp-default-version
-      echo "lsphp70" > /usr/share/lsphp-default-version
+      yum install -y php70-php-cli php70-php-bcmath php70-php-gd php70-php-json php70-php-mbstring php70-php-mcrypt php70-php-mysqlnd php70-php-opcache php70-php-pdo php70-php-pecl-crypto php70-php-pecl-geoip php70-php-pecl-zip php70-php-recode php70-php-snmp php70-php-soap php70-php-xml
+      phpInsVer = '70'
       ;;
       3)
       echo 'Install PHP71'
-      yum install -y php71-php-litespeed php71-php-cli php71-php-bcmath php71-php-gd php71-php-json php71-php-mbstring php71-php-mcrypt php71-php-mysqlnd php71-php-opcache php71-php-pdo php71-php-pecl-crypto php71-php-pecl-geoip php71-php-pecl-zip php71-php-recode php71-php-snmp php71-php-soap php71-php-xml
-      mkdir -p /usr/local/lsws/lsphp71/bin/
-      ln -s /opt/remi/php71/root/usr/bin/lsphp /usr/local/lsws/lsphp71/bin/lsphp
-      ln -s /opt/remi/php71/root/usr/bin/php /usr/bin/php
-      touch /usr/share/lsphp-default-version
-      echo "lsphp71" > /usr/share/lsphp-default-version
+      yum install -y php71-php-cli php71-php-bcmath php71-php-gd php71-php-json php71-php-mbstring php71-php-mcrypt php71-php-mysqlnd php71-php-opcache php71-php-pdo php71-php-pecl-crypto php71-php-pecl-geoip php71-php-pecl-zip php71-php-recode php71-php-snmp php71-php-soap php71-php-xml
+      phpInsVer = '71'
       ;;
       4)
       echo 'Install PHP72'
-      yum install -y php72-php-litespeed php72-php-cli php72-php-bcmath php72-php-gd php72-php-json php72-php-mbstring php72-php-mcrypt php72-php-mysqlnd php72-php-opcache php72-php-pdo php72-php-pecl-crypto php72-php-pecl-mcrypt php72-php-pecl-geoip php72-php-pecl-zip php72-php-recode php72-php-snmp php72-php-soap php72-php-xml
-      mkdir -p /usr/local/lsws/lsphp72/bin/
-      ln -s /opt/remi/php72/root/usr/bin/lsphp /usr/local/lsws/lsphp72/bin/lsphp
-      ln -s /opt/remi/php72/root/usr/bin/php /usr/bin/php
-      touch /usr/share/lsphp-default-version
-      echo "lsphp72" > /usr/share/lsphp-default-version
+      yum install -y php72-php-cli php72-php-bcmath php72-php-gd php72-php-json php72-php-mbstring php72-php-mcrypt php72-php-mysqlnd php72-php-opcache php72-php-pdo php72-php-pecl-crypto php72-php-pecl-mcrypt php72-php-pecl-geoip php72-php-pecl-zip php72-php-recode php72-php-snmp php72-php-soap php72-php-xml
+      phpInsVer = '72'
       ;;
       5)
       echo 'Install PHP73'
-      yum install -y php73-php-litespeed php73-php-cli php73-php-bcmath php73-php-gd php73-php-json php73-php-mbstring php73-php-mcrypt php73-php-mysqlnd php73-php-opcache php73-php-pdo php73-php-pecl-crypto php73-php-pecl-mcrypt php73-php-pecl-geoip php73-php-pecl-zip php73-php-recode php73-php-snmp php73-php-soap php73-php-xml
-      mkdir -p /usr/local/lsws/lsphp73/bin/
-      ln -s /opt/remi/php73/root/usr/bin/lsphp /usr/local/lsws/lsphp73/bin/lsphp
-      ln -s /opt/remi/php73/root/usr/bin/php /usr/bin/php
-      touch /usr/share/lsphp-default-version
-      echo "lsphp73" > /usr/share/lsphp-default-version
+      yum install -y php73-php-cli php73-php-bcmath php73-php-gd php73-php-json php73-php-mbstring php73-php-mcrypt php73-php-mysqlnd php73-php-opcache php73-php-pdo php73-php-pecl-crypto php73-php-pecl-mcrypt php73-php-pecl-geoip php73-php-pecl-zip php73-php-recode php73-php-snmp php73-php-soap php73-php-xml
+      phpInsVer = '73'
       ;;
       6)
       echo 'Install PHP74'
-      yum install -y php74-php-litespeed php74-php-cli php74-php-bcmath php74-php-gd php74-php-json php74-php-mbstring php74-php-mcrypt php74-php-mysqlnd php74-php-opcache php74-php-pdo php74-php-pecl-crypto php74-php-pecl-mcrypt php74-php-pecl-geoip php74-php-pecl-zip php74-php-recode php74-php-snmp php74-php-soap php74-php-xml
-      mkdir -p /usr/local/lsws/lsphp74/bin/
-      ln -s /opt/remi/php74/root/usr/bin/lsphp /usr/local/lsws/lsphp74/bin/lsphp
-      ln -s /opt/remi/php74/root/usr/bin/php /usr/bin/php
-      touch /usr/share/lsphp-default-version
-      echo "lsphp74" > /usr/share/lsphp-default-version
+      yum install -y php74-php-cli php74-php-bcmath php74-php-gd php74-php-json php74-php-mbstring php74-php-mcrypt php74-php-mysqlnd php74-php-opcache php74-php-pdo php74-php-pecl-crypto php74-php-pecl-mcrypt php74-php-pecl-geoip php74-php-pecl-zip php74-php-recode php74-php-snmp php74-php-soap php74-php-xml
+      phpInsVer = '74'
       ;;
       7)
       echo 'Install PHP80'
-      yum install -y php80-php-litespeed php80-php-cli php80-php-bcmath php80-php-gd php80-php-json php80-php-mbstring php80-php-mcrypt php80-php-mysqlnd php80-php-opcache php80-php-pdo php80-php-pecl-crypto php80-php-pecl-mcrypt php80-php-pecl-geoip php80-php-pecl-zip php80-php-snmp php80-php-soap php80-php-xml
-      mkdir -p /usr/local/lsws/lsphp80/bin/
-      ln -s /opt/remi/php80/root/usr/bin/lsphp /usr/local/lsws/lsphp80/bin/lsphp
-      ln -s /opt/remi/php80/root/usr/bin/php /usr/bin/php
-      touch /usr/share/lsphp-default-version
-      echo "lsphp80" > /usr/share/lsphp-default-version
+      yum install -y php80-php-cli php80-php-bcmath php80-php-gd php80-php-json php80-php-mbstring php80-php-mcrypt php80-php-mysqlnd php80-php-opcache php80-php-pdo php80-php-pecl-crypto php80-php-pecl-mcrypt php80-php-pecl-geoip php80-php-pecl-zip php80-php-snmp php80-php-soap php80-php-xml
+      phpInsVer = '80'
       ;;
     esac
   fi
+
+      if [ "${HttpdV}" != '1' ]; then
+        yum install -y php${phpInsVer}-php-litespeed
+        ln -s /opt/remi/php${phpInsVer}/root/usr/bin/lsphp /usr/local/lsws/lsphp${phpInsVer}/bin/lsphp
+      fi
+
+      mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
+      ln -s /opt/remi/php${phpInsVer}/root/usr/bin/php /usr/bin/php
+      touch /usr/share/lsphp-default-version
+      echo 'lsphp${phpInsVer}' > /usr/share/lsphp-default-version
 
   #if [ "${LiteSpeedV}" != '0' ]; then
   #echo 'Enable LiteSpeedTech REPO'
@@ -446,30 +438,43 @@ doInstall(){
     cp -a /tmp/OLStack-yum-${envType}/home/demo/public_html/* /var/www/vhosts/localhost/html/
 
     echo 'Setting Default LSPHP Version'
-    case ${phpV} in
-      1)
-      sed -i "s@lsphp73@lsphp56@g" /usr/local/lsws/conf/httpd_config.conf
-      ;;
-      2)
-      sed -i "s@lsphp73@lsphp70@g" /usr/local/lsws/conf/httpd_config.conf
-      ;;
-      3)
-      sed -i "s@lsphp73@lsphp71@g" /usr/local/lsws/conf/httpd_config.conf
-      ;;
-      4)
-      sed -i "s@lsphp73@lsphp72@g" /usr/local/lsws/conf/httpd_config.conf
-      ;;
-      5)
-      sed -i "s@lsphp73@lsphp73@g" /usr/local/lsws/conf/httpd_config.conf
-      ;;
-      6)
-      sed -i "s@lsphp73@lsphp74@g" /usr/local/lsws/conf/httpd_config.conf
-      ;;
-      7)
-      sed -i "s@lsphp73@lsphp80@g" /usr/local/lsws/conf/httpd_config.conf
-      ;;
+      sed -i "s@lsphp73@lsphp${phpInsVer}@g" /usr/local/lsws/conf/httpd_config.conf
     esac
+  fi
 
+  if [ "${HttpdV}" = "1" ]; then
+
+  echo 'Install and Setting HTTPD'
+
+      yum install httpd mod_ssl -y
+      echo "Protocols h2 http/1.1" >> /etc/httpd/conf/httpd.conf
+      sed -i '/logs\/access_log" common/s/^/#/' /etc/httpd/conf/httpd.conf
+      sed -i '/LoadModule mpm_prefork_module/s/^/#/g' /etc/httpd/conf.modules.d/00-mpm.conf
+      sed -i '/LoadModule mpm_event_module/s/^#//g' /etc/httpd/conf.modules.d/00-mpm.conf
+      sed -i "s+SetHandler application/x-httpd-php+SetHandler proxy:unix:/var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock|fcgi://localhost+g" /etc/httpd/conf.d/php.conf
+      cp /tmp/OLStack-yum-${envType}/conf/deflate.conf /etc/httpd/conf.d
+      cp /tmp/OLStack-yum-${envType}/conf/default-ssl.conf /etc/httpd/conf.d
+      sed -i '/ErrorLog/s/^/#/g' /etc/httpd/conf.d/default-ssl.conf
+      sed -i "s/80/81/g" /etc/httpd/conf/httpd.conf
+      sed -i "s/443/445/g" /etc/httpd/conf.d/default-ssl.conf
+      systemctl restart httpd
+
+      echo 'Setting OLS'
+
+      mv /usr/local/lsws/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf.apa.old
+      mv /usr/local/lsws/Example/conf/vhconf.conf /usr/local/lsws/Example/conf/vhconf.conf.apa.old
+      cp /tmp/OLStack-yum-${envType}/conf/apa_httpd_config.conf /usr/local/lsws/conf/httpd_config.conf
+      if [ -d "/usr/local/lsws/conf/vhosts/Example/" ]; then
+          mkdir -p /usr/local/lsws/conf/vhosts/Example/
+      fi
+      cp /tmp/OLStack-yum-${envType}/conf/apa_vhconf.conf /usr/local/lsws/conf/vhosts/Example/vhconf.conf
+      sed -i "s/www-data/nobody/g" /usr/local/lsws/conf/httpd_config.conf
+      #sed -i "s|/usr/local/lsws/lsphp${phpInsVer}/bin/lsphp|/usr/bin/lsphp|g" /usr/local/lsws/conf/httpd_config.conf
+      sed -i "s/:80/:81/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
+      sed -i "s/:443/:445/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
+      change_owner /usr/local/lsws/cachedata
+      rm -f /tmp/lshttpd/.rtreport
+      service lsws restart
   fi
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
