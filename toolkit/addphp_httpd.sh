@@ -31,8 +31,8 @@ line_change(){
     fi  
 }
 
-install_lsphp(){
-    case ${LSPHP} in
+install_php(){
+    case ${PHP} in
       56)
       yum install -y php56-php-fpm php56-php-cli php56-php-bcmath php56-php-gd php56-php-mbstring php56-php-mcrypt php56-php-mysqlnd php56-php-opcache php56-php-pdo php56-php-pecl-crypto php56-php-pecl-geoip php56-php-pecl-zip php56-php-recode php56-php-snmp php56-php-soap php56-php-xml
       phpInsVer='56'
@@ -82,8 +82,20 @@ httpd_restart(){
 }
 
 main_addphp(){
-    install_lsphp ${LSPHP}
+    install_php ${PHP}
     httpd_restart
+}
+
+make_default(){
+    rm -rf /etc/httpd/conf.d/php00-php.conf
+    ln -s /etc/httpd/conf.d/php${phpInsVer}-php.conf /etc/httpd/conf.d/php00-php.conf
+    if [ -f "/usr/bin/php" ]; then
+      if [ -f "/usr/bin/php.old" ]; then
+        rm -rf /usr/bin/php.old
+      fi
+      mv /usr/bin/php /usr/bin/php.old
+    fi
+      ln -s /opt/remi/php${PHP}/root/usr/bin/php /usr/bin/php
 }
 
 check_input ${1}
@@ -94,8 +106,12 @@ while [ ! -z "${1}" ]; do
             ;;
         -[pP] | -php | --PHP) shift
             check_input "${1}"
-            LSPHP="${1}"
+            PHP="${1}"
             main_addphp
+            ;;
+        -[dD] | -default | --default)
+            make_default
+            httpd_restart
             ;;
         *) 
             help_message

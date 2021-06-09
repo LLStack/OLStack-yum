@@ -404,6 +404,7 @@ doInstall(){
         yum install -y php${phpInsVer}-php-fpm
         systemctl enable php${phpInsVer}-php-fpm
         systemctl start php${phpInsVer}-php-fpm
+        ln -s /etc/httpd/conf.d/php${phpInsVer}-php.conf /etc/httpd/conf.d/php00-php.conf
         #mkdir -p /var/run/php/
         #ln -s /var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock /var/run/php/php-fpm.sock
       fi
@@ -466,7 +467,7 @@ doInstall(){
       echo "Protocols h2 http/1.1" >> /etc/httpd/conf/httpd.conf
       echo "Include /etc/httpd/conf.d/vhosts/*.conf" >> /etc/httpd/conf/httpd.conf
       sed -i '/logs\/access_log" common/s/^/#/' /etc/httpd/conf/httpd.conf
-      sed -i "s@/var/www@/var/www/vhosts/localhost/@g" /etc/httpd/conf/httpd.conf
+      sed -i "s@/var/www@/var/www/vhosts/localhost@g" /etc/httpd/conf/httpd.conf
       sed -i '/LoadModule mpm_prefork_module/s/^/#/g' /etc/httpd/conf.modules.d/00-mpm.conf
       sed -i '/LoadModule mpm_event_module/s/^#//g' /etc/httpd/conf.modules.d/00-mpm.conf
       #sed -i "s+SetHandler application/x-httpd-php+SetHandler proxy:unix:/var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock|fcgi://localhost+g" /etc/httpd/conf.d/php.conf

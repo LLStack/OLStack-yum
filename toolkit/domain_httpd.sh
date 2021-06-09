@@ -58,6 +58,14 @@ www_domain(){
     WWW_DOMAIN=$(echo www.${1})
 }
 
+line_change(){
+    LINENUM=$(grep -v '#' ${2} | grep -n "${1}" | cut -d: -f 1)
+    if [ -n "$LINENUM" ] && [ "$LINENUM" -eq "$LINENUM" ] 2>/dev/null; then
+        sed -i "${LINENUM}d" ${2}
+        sed -i "${LINENUM}i${3}" ${2}
+    fi  
+}
+
 line_insert(){
     LINENUM=$(grep -n "${1}" ${2} | cut -d: -f 1)
     ADDNUM=${4:-0} 
@@ -68,14 +76,6 @@ line_insert(){
 }
 
 add_ols_domain(){
-    # Get php version
-
-    if [ "${phpVer}" != '']; then
-        phpVerD=${phpVer}
-    else
-        phpVerD=$(cat /usr/share/php-default-version)
-    fi
-
     mkdir -p /usr/local/lsws/conf/vhosts/${DOMAIND}
     if [ ! -f "/usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf" ]; then
         cat > /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf << EOF
@@ -178,7 +178,7 @@ EOF
         Require all granted
         DirectoryIndex index.php index.html index.htm default.php default.html default.htm
     </Directory>
-    Include /etc/httpd/conf.d/php${phpVerD}-php.conf
+    Include /etc/httpd/conf.d/php00-php.conf
 </VirtualHost>
 <VirtualHost *:445>
     ServerAdmin webmaster@llstack.com
@@ -211,7 +211,7 @@ EOF
         Require all granted
         DirectoryIndex index.php index.html index.htm default.php default.html default.htm
     </Directory>
-    Include /etc/httpd/conf.d/php${phpVerD}-php.conf
+    Include /etc/httpd/conf.d/php00-php.conf
 </VirtualHost>
 EOF
         else
@@ -239,13 +239,19 @@ EOF
         Require all granted
         DirectoryIndex index.php index.html index.htm default.php default.html default.htm
     </Directory>
-    Include /etc/httpd/conf.d/php${phpVerD}-php.conf
+    Include /etc/httpd/conf.d/php00-php.conf
 </VirtualHost>
 EOF
         fi
     else
         echoR "Targeted file already exist, skip!"
     fi
+}
+
+changephp() {
+    NEWKEY="Include /etc/httpd/conf.d/php${phpVer}-php.conf"
+    line_change 'Include /etc/httpd/conf.d/' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+    systemctl restart httpd.service
 }
 
 set_server_conf() {
@@ -321,6 +327,7 @@ while [ ! -z "${1}" ]; do
             ;;
         -[pP] | -php | --PHP) shift
             phpVer=${1}
+            changephp
             ;;    
         *) 
             help_message
