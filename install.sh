@@ -398,19 +398,20 @@ doInstall(){
 
       if [ "${HttpdV}" != '1' ]; then
         yum install -y php${phpInsVer}-php-litespeed
+        mkdir -p /usr/local/lsws/lsphp${phpInsVer}/
         ln -s /opt/remi/php${phpInsVer}/root/usr/bin/lsphp /usr/local/lsws/lsphp${phpInsVer}/bin/lsphp
       else
         yum install -y php${phpInsVer}-php-fpm
         systemctl enable php${phpInsVer}-php-fpm
         systemctl start php${phpInsVer}-php-fpm
-        mkdir -p /var/run/php/
+        #mkdir -p /var/run/php/
         #ln -s /var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock /var/run/php/php-fpm.sock
       fi
 
       mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
       ln -s /opt/remi/php${phpInsVer}/root/usr/bin/php /usr/bin/php
-      touch /usr/share/lsphp-default-version
-      echo 'lsphp${phpInsVer}' > /usr/share/lsphp-default-version
+      touch /usr/share/php-default-version
+      echo '${phpInsVer}' > /usr/share/php-default-version
 
   #if [ "${LiteSpeedV}" != '0' ]; then
   #echo 'Enable LiteSpeedTech REPO'
@@ -463,6 +464,7 @@ doInstall(){
 
       yum install httpd mod_ssl -y
       echo "Protocols h2 http/1.1" >> /etc/httpd/conf/httpd.conf
+      echo "Include /etc/httpd/conf.d/vhosts/*.conf" >> /etc/httpd/conf/httpd.conf
       sed -i '/logs\/access_log" common/s/^/#/' /etc/httpd/conf/httpd.conf
       sed -i "s@/var/www@/var/www/vhosts/localhost/@g" /etc/httpd/conf/httpd.conf
       sed -i '/LoadModule mpm_prefork_module/s/^/#/g' /etc/httpd/conf.modules.d/00-mpm.conf
@@ -492,16 +494,20 @@ doInstall(){
       rm -f /tmp/lshttpd/.rtreport
       service lsws restart
 
-      echo 'Setting PHP-FPM'
+      echo 'Setting PHP-FPM and HTTPD listen'
 
       NEWKEY="listen.owner = nobody"
-      line_change 'listen.owner = ' /etc/opt/remi/php${phpInsVer}/ "${NEWKEY}"
+      line_change 'listen.owner = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.group = nobody"
-      line_change 'listen.group = ' /etc/opt/remi/php${phpInsVer}/ "${NEWKEY}"
+      line_change 'listen.group = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY='listen.mode = 0660'
-      line_change 'listen.mode = ' /etc/opt/remi/php${phpInsVer}/ "${NEWKEY}"  
+      line_change 'listen.mode = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"  
       NEWKEY='listen.backlog = 4096'
-      line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/ "${NEWKEY}"   
+      line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"   
+      NEWKEY='User nobody'
+      line_change 'User apache' /etc/httpd/conf/httpd.conf "${NEWKEY}" 
+      NEWKEY='Group nobody'
+      line_change 'Group apache' /etc/httpd/conf/httpd.conf "${NEWKEY}" 
   fi
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then

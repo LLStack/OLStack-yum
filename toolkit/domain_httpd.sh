@@ -58,11 +58,27 @@ www_domain(){
     WWW_DOMAIN=$(echo www.${1})
 }
 
+line_insert(){
+    LINENUM=$(grep -n "${1}" ${2} | cut -d: -f 1)
+    ADDNUM=${4:-0} 
+    if [ -n "$LINENUM" ] && [ "$LINENUM" -eq "$LINENUM" ] 2>/dev/null; then
+        LINENUM=$((${LINENUM}+${4}))
+        sed -i "${LINENUM}i${3}" ${2}
+    fi  
+}
+
 add_ols_domain(){
-    mkdir -p /usr/local/lsws/conf/vhosts/${DOMAIN}
-    mkdir -p /etc/httpd/conf.d/vhosts/${DOMAIN}
-    if [ ! -f "/usr/local/lsws/conf/vhosts/${DOMAIN}/vhconf.conf" ]; then
-        cat > /usr/local/lsws/conf/vhosts/${DOMAIN}/vhconf.conf << EOF
+    # Get php version
+
+    if [ "${phpVer}" != '']; then
+        phpVerD=${phpVer}
+    else
+        phpVerD=$(cat /usr/share/php-default-version)
+    fi
+
+    mkdir -p /usr/local/lsws/conf/vhosts/${DOMAIND}
+    if [ ! -f "/usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf" ]; then
+        cat > /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf << EOF
 docRoot                   $VH_ROOT/html/
 vhDomain                  example.llstack.com
 vhAliases                 www.$VH_DOMAIN
@@ -136,60 +152,50 @@ EOF
         echoR "Targeted file already exist, skip!"
     fi
 
-    if [ ! -f "/etc/httpd/conf.d/vhosts/${DOMAIN}/vhconf.conf" ]; then
-        cat > /etc/httpd/conf.d/vhosts/${DOMAIN}/vhconf.conf << EOF
+    if [ ! -f "/etc/httpd/conf.d/vhosts/${DOMAIND}.conf" ]; then
+        if [ "${add_domain_ssl}" = 1]; then
+        cat > /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
 <VirtualHost *:81>
     ServerAdmin webmaster@llstack.com
-    DocumentRoot "/var/www/vhosts/${DOMAIN}/html/"
-    ServerName ${DOMAIN}
-    ServerAlias www.${DOMAIN} 
+    DocumentRoot "/var/www/vhosts/${DOMAIND}/html/"
+    ServerName ${DOMAIND}
+    ServerAlias www.${DOMAIND} 
     #errorDocument 404 /404.html
-    ErrorLog "/var/log/httpd/${DOMAIN}-error.log"
-    CustomLog "/var/log/httpd/${DOMAIN}-access.log" combined
+    ErrorLog "/var/log/httpd/${DOMAIND}-error.log"
+    CustomLog "/var/log/httpd/${DOMAIND}-access.log" combined
     
     #DENY FILES
      <Files ~ (\.user.ini|\.htaccess|\.git|\.svn|\.project|LICENSE|README.md)$>
        Order allow,deny
        Deny from all
     </Files>
-    
-    #PHP
-    <FilesMatch \.php$>
-            SetHandler "proxy:unix:/var/run/php/php-fpm.sock|fcgi://localhost"
-    </FilesMatch>
-    
+
     #PATH
-    <Directory "/var/www/vhosts/${DOMAIN}/html/">
+    <Directory "/var/www/vhosts/${DOMAIND}/html/">
         SetOutputFilter DEFLATE
         Options FollowSymLinks
         AllowOverride All
         Require all granted
         DirectoryIndex index.php index.html index.htm default.php default.html default.htm
     </Directory>
+    Include /etc/httpd/conf.d/php${phpVerD}-php.conf
 </VirtualHost>
 <VirtualHost *:445>
     ServerAdmin webmaster@llstack.com
-    DocumentRoot "/var/www/vhosts/${DOMAIN}/html//"
-    ServerName ${DOMAIN}
-    ServerAlias www.${DOMAIN} 
+    DocumentRoot "/var/www/vhosts/${DOMAIND}/html/"
+    ServerName ${DOMAIND}
+    ServerAlias www.${DOMAIND} 
     #errorDocument 404 /404.html
-    ErrorLog "/var/log/httpd/${DOMAIN}-error.log"
-    CustomLog "/var/log/httpd/${DOMAIN}-access.log" combined
+    ErrorLog "/var/log/httpd/${DOMAIND}-error.log"
+    CustomLog "/var/log/httpd/${DOMAIND}-access.log" combined
     
     #SSL
     SSLEngine On
-    SSLCertificateFile /root/.acme.sh/certs/$VH_NAME/fullchain.cer
-    SSLCertificateKeyFile /root/.acme.sh/certs/$VH_NAME/$VH_NAME.key
+    SSLCertificateFile /root/.acme.sh/certs/${DOMAIND}/fullchain.cer
+    SSLCertificateKeyFile /root/.acme.sh/certs/${DOMAIND}/${DOMAIND}.key
     SSLCipherSuite TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:TLS13-AES-128-GCM-SHA256:TLS13-AES-128-CCM-8-SHA256:TLS13-AES-128-CCM-SHA256:EECDH+CHACHA20:EECDH+CHACHA20-draft:EECDH+ECDSA+AES128:EECDH+aRSA+AES128:RSA+AES128:EECDH+ECDSA+AES256:EECDH+aRSA+AES256:RSA+AES256:EECDH+ECDSA+3DES:EECDH+aRSA+3DES:RSA+3DES:!MD5;
     SSLProtocol All -SSLv2 -SSLv3 -TLSv1
     SSLHonorCipherOrder On
-    
-    
-    #PHP
-    <FilesMatch \.php$>
-            SetHandler "proxy:unix:/var/run/php/php-fpm.sock|fcgi://localhost"
-    </FilesMatch>
-    
 
     #DENY FILES
      <Files ~ (\.user.ini|\.htaccess|\.git|\.svn|\.project|LICENSE|README.md)$>
@@ -198,22 +204,52 @@ EOF
     </Files>
 
     #PATH
-    <Directory "/var/www/vhosts/${DOMAIN}/html//">
+    <Directory "/var/www/vhosts/${DOMAIND}/html/">
         SetOutputFilter DEFLATE
         Options FollowSymLinks
         AllowOverride All
         Require all granted
         DirectoryIndex index.php index.html index.htm default.php default.html default.htm
     </Directory>
+    Include /etc/httpd/conf.d/php${phpVerD}-php.conf
 </VirtualHost>
 EOF
+        else
+        cat > /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
+<VirtualHost *:81>
+    ServerAdmin webmaster@llstack.com
+    DocumentRoot "/var/www/vhosts/${DOMAIND}/html/"
+    ServerName ${DOMAIND}
+    ServerAlias www.${DOMAIND} 
+    #errorDocument 404 /404.html
+    ErrorLog "/var/log/httpd/${DOMAIND}-error.log"
+    CustomLog "/var/log/httpd/${DOMAIND}-access.log" combined
+    
+    #DENY FILES
+     <Files ~ (\.user.ini|\.htaccess|\.git|\.svn|\.project|LICENSE|README.md)$>
+       Order allow,deny
+       Deny from all
+    </Files>
+    
+    #PATH
+    <Directory "/var/www/vhosts/${DOMAIND}/html/">
+        SetOutputFilter DEFLATE
+        Options FollowSymLinks
+        AllowOverride All
+        Require all granted
+        DirectoryIndex index.php index.html index.htm default.php default.html default.htm
+    </Directory>
+    Include /etc/httpd/conf.d/php${phpVerD}-php.conf
+</VirtualHost>
+EOF
+        fi
     else
         echoR "Targeted file already exist, skip!"
     fi
 }
 
 set_server_conf() {
-    NEWKEY="map                     ${DOMAIN} ${WWW_DOMAIN}" 
+    NEWKEY="map                     ${DOMAIND} ${WWW_DOMAIN}" 
     PORT_ARR=$(grep "address.*:[0-9]"  /usr/local/lsws/conf/httpd_config.conf | awk '{print substr($2,3)}')
     if [  ${#PORT_ARR[@]} != 0 ]; then
         for PORT in ${PORT_ARR[@]}; do 
@@ -223,9 +259,9 @@ set_server_conf() {
         echoR 'No listener port detected, listener setup skip!'    
     fi
     echo "
-virtualhost ${DOMAIN} {
-vhRoot                  /var/www/vhosts/${DOMAIN}
-configFile              /usr/local/lsws/conf/vhosts/${DOMAIN}/vhconf.conf
+virtualhost ${DOMAIND} {
+vhRoot                  /var/www/vhosts/${DOMAIND}
+configFile              /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
 allowSymbolLink         1
 enableScript            1
 restrained              1
@@ -233,18 +269,28 @@ restrained              1
 }
 
 update_vh_conf(){
-    sed -i 's|example.llstack.com|'${DOMAIN}'|g' /usr/local/lsws/conf/vhosts/${DOMAIN}/vhconf.conf
+    sed -i 's|example.llstack.com|'${DOMAIND}'|g' /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
 }
+check_ssl_acme(){
+    if [ ! -d "/root/.acme.sh/certs/${DOMAIND}" ]; then
+        echoR 'Please use acme.sh to issue the certificate first'
+    fi
+}
+
 
 add_domain(){
     dot_escape ${1}
     DOMAIN=${ESCAPE}
+    DOMAIND=${1}
     www_domain ${1}
-    check_duplicate ${DOMAIN} /usr/local/lsws/conf/httpd_config.conf
+    check_duplicate ${DOMAIND} /usr/local/lsws/conf/httpd_config.conf
     if [ "${CK_RESULT}" != '' ]; then
         echo "# It appears the domain already exist! Check the ${OLS_HTTPD_CONF} if you believe this is a mistake!"
         exit 1
-    fi        
+    fi
+    if [[ "${add_domain_ssl}" = "1" || "${self_ssl_key}" = '' || "${self_ssl_crt}" = '' ]]; then
+        check_ssl_acme
+    fi
     add_ols_domain
     set_server_conf
     update_vh_conf
@@ -252,6 +298,7 @@ add_domain(){
         mkdir -p /var/www/vhosts/${1}/{html,logs,certs}
     fi
     bash /usr/local/lsws/bin/lswsctrl restart
+    systemctl restart httpd.service
 }
 
 check_input ${1}
@@ -262,7 +309,19 @@ while [ ! -z "${1}" ]; do
             ;;
         -[aA] | -add | --add) shift
             add_domain ${1}
-            ;;        
+            ;;      
+        -[sS] | -ssl | --SSL) shift
+            add_domain_ssl='1'
+            ;;
+        -[kK] | -key | --KEY) shift
+            self_ssl_key=${1}
+            ;;
+        -[cC] | -crt | --CRT) shift
+            self_ssl_crt=${1}
+            ;;
+        -[pP] | -php | --PHP) shift
+            phpVer=${1}
+            ;;    
         *) 
             help_message
             ;;
