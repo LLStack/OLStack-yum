@@ -466,6 +466,8 @@ doInstall(){
       yum install httpd mod_ssl -y
       echo "Protocols h2 http/1.1" >> /etc/httpd/conf/httpd.conf
       echo "Include /etc/httpd/conf.d/vhosts/*.conf" >> /etc/httpd/conf/httpd.conf
+      mkdir -p /etc/httpd/conf.d/vhosts
+      touch /etc/httpd/conf.d/vhosts/0.conf
       sed -i '/logs\/access_log" common/s/^/#/' /etc/httpd/conf/httpd.conf
       sed -i "s@/var/www@/var/www/vhosts/localhost@g" /etc/httpd/conf/httpd.conf
       sed -i '/LoadModule mpm_prefork_module/s/^/#/g' /etc/httpd/conf.modules.d/00-mpm.conf

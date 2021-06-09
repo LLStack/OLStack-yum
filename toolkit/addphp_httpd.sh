@@ -72,7 +72,6 @@ install_php(){
       NEWKEY='listen.backlog = 4096'
       line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"   
 
-      yum install -y php${phpInsVer}-php-fpm
       systemctl enable php${phpInsVer}-php-fpm
       systemctl start php${phpInsVer}-php-fpm
 }
@@ -89,13 +88,13 @@ main_addphp(){
 make_default(){
     rm -rf /etc/httpd/conf.d/php00-php.conf
     ln -s /etc/httpd/conf.d/php${phpInsVer}-php.conf /etc/httpd/conf.d/php00-php.conf
-    if [ -f "/usr/bin/php" ]; then
-      if [ -f "/usr/bin/php.old" ]; then
+    if [ -f "/usr/bin/php.old" ]; then
         rm -rf /usr/bin/php.old
-      fi
+    fi
+    if [ -f "/usr/bin/php" ]; then
       mv /usr/bin/php /usr/bin/php.old
     fi
-      ln -s /opt/remi/php${PHP}/root/usr/bin/php /usr/bin/php
+      ln -s /opt/remi/php${phpInsVer}/root/usr/bin/php /usr/bin/php
 }
 
 check_input ${1}

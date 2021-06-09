@@ -11,12 +11,24 @@ echow(){
     echo -e "\033[1m${EPACE}${FLAG}\033[0m${@}"
 }
 
+echoR() {
+    echo -e "\e[31m${1}\e[39m"
+}
+
 help_message(){
     echo -e "\033[1mOPTIONS\033[0m"
     echow '-A, --add [DOMAIN_NAME]'
     echo "${EPACE}${EPACE}Will add domain to listener and creat a virtual host from template"
+    echow '-p, --php [PHP_version]'
+    echo "${EPACE}${EPACE}Will use the specified PHP version on the vhost" 
+    echow '-S, --ssl'
+    echo "${EPACE}${EPACE}Will use the acme ssl cert,but you should use the acme.sh to issue the cert first!" 
+    echow '-K, --key [SSLKey_Dir]'
+    echo "${EPACE}${EPACE}Use you own SSL key to enable SSL,Please fill in the path of the ssl Privite Key" 
+    echow '-C, --crt [SSLCrt_dir]'
+    echo "${EPACE}${EPACE}Use you own SSL Crt to enable SSL,Please fill in the path of the ssl certificate"  
     echow '-H, --help'
-    echo "${EPACE}${EPACE}Display help."    
+    echo "${EPACE}${EPACE}Display help." 
 }
 
 dot_escape(){
@@ -153,7 +165,7 @@ EOF
     fi
 
     if [ ! -f "/etc/httpd/conf.d/vhosts/${DOMAIND}.conf" ]; then
-        if [ "${add_domain_ssl}" = 1]; then
+        if [ "${add_domain_ssl}" = 1 ]; then
         cat > /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
 <VirtualHost *:81>
     ServerAdmin webmaster@llstack.com
@@ -320,6 +332,7 @@ while [ ! -z "${1}" ]; do
             add_domain_ssl='1'
             ;;
         -[kK] | -key | --KEY) shift
+            add_domain_ssl='1'
             self_ssl_key=${1}
             ;;
         -[cC] | -crt | --CRT) shift
