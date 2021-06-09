@@ -30,6 +30,8 @@ help_message(){
     echo "${EPACE}${EPACE}will install the PerconaDB or MariaDB in OLStack,eg: -m 3 or --mysql 5. 1=MariaDB-10.3,2=MariaDB-10.4,3=MariaDB-10.5,4=MariaDB-10.6,5=Percona-5.7,6=Percona-8.0" 
     echow '-l, --ols, --openlitespeed [OpenLiteSpeed_Option]'
     echo "${EPACE}${EPACE}Will install the OpenLiteSpeed in OLStack, eg: -l 1 or --ols 2.  1=OpenLiteSpeed Stable,2=OpenLiteSpeed Edge"
+    echow '-h, --httpd, --HTTPD [Apache_HTTPD_Option]'
+    echo "${EPACE}${EPACE}Will install the Apache HTTPD 2.4 as Backend, eg: -h 1 or --httpd 0.  1=Install HTTPD,0=Do not Install HTTPD"
     echow '-d, --dbtool, --DBTOOL [DBTool_Option]'
     echo "${EPACE}${EPACE}Will install the DBTool in OLStack, eg: -d 1 or --dbtool 2.  1=AMySQL,2=Adminer.3=phpMyAdmin"
     echow '-cC, --china, --CN [DBTool_Option]'
@@ -83,6 +85,14 @@ showError(){
 # show notice message
 showNotice(){
   echo -e "\\033[36m[NOTICE]\\033[0m $1"
+}
+
+line_change(){
+    LINENUM=$(grep -v '#' ${2} | grep -n "${1}" | cut -d: -f 1)
+    if [ -n "$LINENUM" ] && [ "$LINENUM" -eq "$LINENUM" ] 2>/dev/null; then
+        sed -i "${LINENUM}d" ${2}
+        sed -i "${LINENUM}i${3}" ${2}
+    fi  
 }
 
 # install
@@ -351,37 +361,37 @@ doInstall(){
       1)
       echo 'Install PHP56'
       yum install -y php56-php-cli php56-php-bcmath php56-php-gd php56-php-mbstring php56-php-mcrypt php56-php-mysqlnd php56-php-opcache php56-php-pdo php56-php-pecl-crypto php56-php-pecl-geoip php56-php-pecl-zip php56-php-recode php56-php-snmp php56-php-soap php56-php-xml
-      phpInsVer = '56'
+      phpInsVer='56'
       ;;
       2)
       echo 'Install PHP70'
       yum install -y php70-php-cli php70-php-bcmath php70-php-gd php70-php-json php70-php-mbstring php70-php-mcrypt php70-php-mysqlnd php70-php-opcache php70-php-pdo php70-php-pecl-crypto php70-php-pecl-geoip php70-php-pecl-zip php70-php-recode php70-php-snmp php70-php-soap php70-php-xml
-      phpInsVer = '70'
+      phpInsVer='70'
       ;;
       3)
       echo 'Install PHP71'
       yum install -y php71-php-cli php71-php-bcmath php71-php-gd php71-php-json php71-php-mbstring php71-php-mcrypt php71-php-mysqlnd php71-php-opcache php71-php-pdo php71-php-pecl-crypto php71-php-pecl-geoip php71-php-pecl-zip php71-php-recode php71-php-snmp php71-php-soap php71-php-xml
-      phpInsVer = '71'
+      phpInsVer='71'
       ;;
       4)
       echo 'Install PHP72'
       yum install -y php72-php-cli php72-php-bcmath php72-php-gd php72-php-json php72-php-mbstring php72-php-mcrypt php72-php-mysqlnd php72-php-opcache php72-php-pdo php72-php-pecl-crypto php72-php-pecl-mcrypt php72-php-pecl-geoip php72-php-pecl-zip php72-php-recode php72-php-snmp php72-php-soap php72-php-xml
-      phpInsVer = '72'
+      phpInsVer='72'
       ;;
       5)
       echo 'Install PHP73'
       yum install -y php73-php-cli php73-php-bcmath php73-php-gd php73-php-json php73-php-mbstring php73-php-mcrypt php73-php-mysqlnd php73-php-opcache php73-php-pdo php73-php-pecl-crypto php73-php-pecl-mcrypt php73-php-pecl-geoip php73-php-pecl-zip php73-php-recode php73-php-snmp php73-php-soap php73-php-xml
-      phpInsVer = '73'
+      phpInsVer='73'
       ;;
       6)
       echo 'Install PHP74'
       yum install -y php74-php-cli php74-php-bcmath php74-php-gd php74-php-json php74-php-mbstring php74-php-mcrypt php74-php-mysqlnd php74-php-opcache php74-php-pdo php74-php-pecl-crypto php74-php-pecl-mcrypt php74-php-pecl-geoip php74-php-pecl-zip php74-php-recode php74-php-snmp php74-php-soap php74-php-xml
-      phpInsVer = '74'
+      phpInsVer='74'
       ;;
       7)
       echo 'Install PHP80'
       yum install -y php80-php-cli php80-php-bcmath php80-php-gd php80-php-json php80-php-mbstring php80-php-mcrypt php80-php-mysqlnd php80-php-opcache php80-php-pdo php80-php-pecl-crypto php80-php-pecl-mcrypt php80-php-pecl-geoip php80-php-pecl-zip php80-php-snmp php80-php-soap php80-php-xml
-      phpInsVer = '80'
+      phpInsVer='80'
       ;;
     esac
   fi
@@ -389,6 +399,12 @@ doInstall(){
       if [ "${HttpdV}" != '1' ]; then
         yum install -y php${phpInsVer}-php-litespeed
         ln -s /opt/remi/php${phpInsVer}/root/usr/bin/lsphp /usr/local/lsws/lsphp${phpInsVer}/bin/lsphp
+      else
+        yum install -y php${phpInsVer}-php-fpm
+        systemctl enable php${phpInsVer}-php-fpm
+        systemctl start php${phpInsVer}-php-fpm
+        mkdir -p /var/run/php/
+        #ln -s /var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock /var/run/php/php-fpm.sock
       fi
 
       mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
@@ -438,8 +454,7 @@ doInstall(){
     cp -a /tmp/OLStack-yum-${envType}/home/demo/public_html/* /var/www/vhosts/localhost/html/
 
     echo 'Setting Default LSPHP Version'
-      sed -i "s@lsphp73@lsphp${phpInsVer}@g" /usr/local/lsws/conf/httpd_config.conf
-    esac
+    sed -i "s@lsphp73@lsphp${phpInsVer}@g" /usr/local/lsws/conf/httpd_config.conf
   fi
 
   if [ "${HttpdV}" = "1" ]; then
@@ -449,9 +464,10 @@ doInstall(){
       yum install httpd mod_ssl -y
       echo "Protocols h2 http/1.1" >> /etc/httpd/conf/httpd.conf
       sed -i '/logs\/access_log" common/s/^/#/' /etc/httpd/conf/httpd.conf
+      sed -i "s@/var/www@/var/www/vhosts/localhost/@g" /etc/httpd/conf/httpd.conf
       sed -i '/LoadModule mpm_prefork_module/s/^/#/g' /etc/httpd/conf.modules.d/00-mpm.conf
       sed -i '/LoadModule mpm_event_module/s/^#//g' /etc/httpd/conf.modules.d/00-mpm.conf
-      sed -i "s+SetHandler application/x-httpd-php+SetHandler proxy:unix:/var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock|fcgi://localhost+g" /etc/httpd/conf.d/php.conf
+      #sed -i "s+SetHandler application/x-httpd-php+SetHandler proxy:unix:/var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock|fcgi://localhost+g" /etc/httpd/conf.d/php.conf
       cp /tmp/OLStack-yum-${envType}/conf/deflate.conf /etc/httpd/conf.d
       cp /tmp/OLStack-yum-${envType}/conf/default-ssl.conf /etc/httpd/conf.d
       sed -i '/ErrorLog/s/^/#/g' /etc/httpd/conf.d/default-ssl.conf
@@ -462,7 +478,7 @@ doInstall(){
       echo 'Setting OLS'
 
       mv /usr/local/lsws/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf.apa.old
-      mv /usr/local/lsws/Example/conf/vhconf.conf /usr/local/lsws/Example/conf/vhconf.conf.apa.old
+      #mv /usr/local/lsws/Example/conf/vhconf.conf /usr/local/lsws/Example/conf/vhconf.conf.apa.old
       cp /tmp/OLStack-yum-${envType}/conf/apa_httpd_config.conf /usr/local/lsws/conf/httpd_config.conf
       if [ -d "/usr/local/lsws/conf/vhosts/Example/" ]; then
           mkdir -p /usr/local/lsws/conf/vhosts/Example/
@@ -472,9 +488,20 @@ doInstall(){
       #sed -i "s|/usr/local/lsws/lsphp${phpInsVer}/bin/lsphp|/usr/bin/lsphp|g" /usr/local/lsws/conf/httpd_config.conf
       sed -i "s/:80/:81/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
       sed -i "s/:443/:445/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
-      change_owner /usr/local/lsws/cachedata
+      chown -R nobody:nobody /usr/local/lsws/cachedata
       rm -f /tmp/lshttpd/.rtreport
       service lsws restart
+
+      echo 'Setting PHP-FPM'
+
+      NEWKEY="listen.owner = nobody"
+      line_change 'listen.owner = ' /etc/opt/remi/php${phpInsVer}/ "${NEWKEY}"
+      NEWKEY="listen.group = nobody"
+      line_change 'listen.group = ' /etc/opt/remi/php${phpInsVer}/ "${NEWKEY}"
+      NEWKEY='listen.mode = 0660'
+      line_change 'listen.mode = ' /etc/opt/remi/php${phpInsVer}/ "${NEWKEY}"  
+      NEWKEY='listen.backlog = 4096'
+      line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/ "${NEWKEY}"   
   fi
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
@@ -503,7 +530,7 @@ doInstall(){
       #elif [ "${phpV}}" = "3" || "${phpV}" = "4" || "${phpV}" = "5" ]; then
       #  cd /home/demo/public_html
       #  wget ${phpMyAdminURL}/phpMyAdmin/4.8.5/phpMyAdmin-4.8.5-all-languages.zip
-      #  https://files.phpmyadmin.net/phpMyAdmin/5.1.0/phpMyAdmin-5.1.0-all-languages.zip
+      #  https://files.phpmyadmin.net/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.zip
       #  unzip phpMyAdmin-4.8.5-all-languages.zip
       #  rm -rf phpMyAdmin-4.8.5-all-languages.zip
       #  mv phpMyAdmin-4.8.5-all-languages phpMyAdmin
@@ -511,10 +538,10 @@ doInstall(){
       else
         echo 'Install phpMyAdmin 5.1'
         cd /var/www/vhosts/localhost/html/
-        wget ${phpMyAdminURL}/phpMyAdmin/5.1.0/phpMyAdmin-5.1.0-all-languages.tar.gz
-        tar xzf phpMyAdmin-5.1.0-all-languages.tar.gz
-        rm -rf phpMyAdmin-5.1.0-all-languages.tar.gz
-        mv phpMyAdmin-5.1.0-all-languages phpMyAdmin
+        wget ${phpMyAdminURL}/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.tar.gz
+        tar xzf phpMyAdmin-5.1.1-all-languages.tar.gz
+        rm -rf phpMyAdmin-5.1.1-all-languages.tar.gz
+        mv phpMyAdmin-5.1.1-all-languages phpMyAdmin
       fi
     fi
   fi
@@ -643,7 +670,7 @@ preInstall(){
   echo '1) Install'
   echo '2) Upgrade packages'
   echo '3) Exit'
-  read -p 'Select an option [1-3]: ' -r -e operation
+  read -p 'Select an option [1-3]: ' -r -e -i 1 operation
   case ${operation} in
     1)
       clear
@@ -703,6 +730,9 @@ clear
             ;;
         -[lL] | -ols | --openlitespeed) shift
             LiteSpeedV="${1}"
+            ;;
+        -[hH] | -HTTPD | --httpd) shift
+            HttpdV="${1}"
             ;;
         -[dD] | -dbtool | --DBTOOL) shift
             dbV="${1}"
