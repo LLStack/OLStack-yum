@@ -143,6 +143,9 @@ check_acme(){
 
 lsws_restart(){
     /usr/local/lsws/bin/lswsctrl restart >/dev/null
+    if [ -f /etc/httpd/conf/httpd.conf]; then
+        systemctl restart httpd >/dev/null
+    fi
 }
 
 doc_root_verify(){
