@@ -467,7 +467,7 @@ doInstall(){
       echo "Protocols h2 http/1.1" >> /etc/httpd/conf/httpd.conf
       echo "Include /etc/httpd/conf.d/vhosts/*.conf" >> /etc/httpd/conf/httpd.conf
       mkdir -p /etc/httpd/conf.d/vhosts
-      touch /etc/httpd/conf.d/vhosts/0.conf
+      cp /tmp/OLStack-yum-${envType}/conf/apa_0.conf /etc/httpd/conf.d/vhosts/0.conf
       sed -i '/logs\/access_log" common/s/^/#/' /etc/httpd/conf/httpd.conf
       sed -i "s@/var/www@/var/www/vhosts/localhost@g" /etc/httpd/conf/httpd.conf
       sed -i '/LoadModule mpm_prefork_module/s/^/#/g' /etc/httpd/conf.modules.d/00-mpm.conf
@@ -478,8 +478,10 @@ doInstall(){
       sed -i '/ErrorLog/s/^/#/g' /etc/httpd/conf.d/default-ssl.conf
       sed -i "s/80/81/g" /etc/httpd/conf/httpd.conf
       sed -i "s/443/445/g" /etc/httpd/conf.d/default-ssl.conf
+      sed -i "s/443/445/g" //etc/httpd/conf.d/welcome.conf
+      rm -f /usr/share/httpd/noindex/index.html
+      cp /tmp/OLStack-yum-${envType}/home/demo/vhosts/ /usr/share/httpd/noindex/
       systemctl restart httpd
-
       echo 'Setting OLS'
 
       mv /usr/local/lsws/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf.apa.old
@@ -489,6 +491,7 @@ doInstall(){
           mkdir -p /usr/local/lsws/conf/vhosts/Example/
       fi
       cp /tmp/OLStack-yum-${envType}/conf/apa_vhconf.conf /usr/local/lsws/conf/vhosts/Example/vhconf.conf
+      sed -i "s/www.example.com/${ipAddress}/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
       sed -i "s/www-data/nobody/g" /usr/local/lsws/conf/httpd_config.conf
       #sed -i "s|/usr/local/lsws/lsphp${phpInsVer}/bin/lsphp|/usr/bin/lsphp|g" /usr/local/lsws/conf/httpd_config.conf
       sed -i "s/:80/:81/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
@@ -499,10 +502,8 @@ doInstall(){
 
       echo 'Setting PHP-FPM and HTTPD listen'
 
-      NEWKEY="user = nobody"
-      line_change 'user = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
-      NEWKEY="group = nobody"
-      line_change 'group = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+      sed -i "s@user = apache@user = nobody@g" /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf
+      sed -i "s@group = apache@group = nobody@g" /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf
       NEWKEY="listen.owner = nobody"
       line_change 'listen.owner = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.group = nobody"

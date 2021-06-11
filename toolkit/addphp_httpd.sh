@@ -63,10 +63,8 @@ install_php(){
       ;;
     esac
 
-      NEWKEY="user = nobody"
-      line_change 'user = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
-      NEWKEY="group = nobody"
-      line_change 'group = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+      sed -i "s@user = apache@user = nobody@g" /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf
+      sed -i "s@group = apache@group = nobody@g" /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf
       NEWKEY="listen.owner = nobody"
       line_change 'listen.owner = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.group = nobody"

@@ -199,7 +199,7 @@ EOF
 
 changephp() {
     NEWKEY="Include /etc/httpd/conf.d/php${phpVer}-php.conf"
-    line_change 'Include /etc/httpd/conf.d/' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+    line_change 'Include /etc/httpd/conf.d/' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"
     systemctl restart httpd.service
 }
 
@@ -224,6 +224,9 @@ restrained              1
 }
 
 add_ssl_domain(){
+    if [  ${acme_checkD} = 1 ]; then
+        bash ./acme.sh -D ${DOMAIND}
+    fi
     cat >> /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
 <VirtualHost *:445>
     ServerAdmin webmaster@llstack.com
@@ -260,6 +263,9 @@ add_ssl_domain(){
 </VirtualHost>
 
 EOF
+    if [  ${self_ssl_crtD} != 1 ]; then
+        lsws_restart
+    fi
 }
 
 change_self_ssl(){
@@ -267,16 +273,17 @@ change_self_ssl(){
       line_change 'SSLCertificateFile' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"  
       NEWKEY='SSLCertificateKeyFile "${self_ssl_key}"'
       line_change 'SSLCertificateKeyFile' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"
-      bash /usr/local/lsws/bin/lswsctrl restart
-      systemctl restart httpd.service
 }
 
 update_vh_conf(){
     sed -i 's|example.llstack.com|'${DOMAIND}'|g' /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
 }
 check_ssl_acme(){
-    if [ ! -d "/root/.acme.sh/certs/${DOMAIND}" ]; then
-        echoR 'Please use acme.sh to issue the certificate first'
+    if [ ! -f "/root/.acme.sh/acme.sh" ]; then
+        bash ./acme.sh --install --no-email
+        acme_checkD = '1'
+    else
+        acme_checkD= '1'
         exit 1
     fi
 }
@@ -305,6 +312,13 @@ add_domain(){
     systemctl restart httpd.service
 }
 
+lsws_restart(){
+    /usr/local/lsws/bin/lswsctrl restart >/dev/null
+    if [ -f /etc/httpd/conf/httpd.conf]; then
+        systemctl restart httpd >/dev/null
+    fi
+}
+
 check_input ${1}
 while [ ! -z "${1}" ]; do
     case ${1} in
@@ -323,7 +337,9 @@ while [ ! -z "${1}" ]; do
             ;;
         -[cC] | -crt | --CRT) shift
             self_ssl_crt=${1}
+            self_ssl_crtD=1
             change_self_ssl
+            lsws_restart
             ;;
         -[pP] | -php | --PHP) shift
             phpVer=${1}
