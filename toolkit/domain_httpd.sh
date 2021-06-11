@@ -93,7 +93,7 @@ add_ols_domain(){
         cat > /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf << EOF
 docRoot                   $VH_ROOT/html/
 vhDomain                  example.llstack.com
-vhAliases                 www.$VH_DOMAIN
+vhAliases                 www.example.llstack.com
 enableGzip                1
 
 errorlog \$SERVER_ROOT/logs/\$VH_NAME.error_log {
@@ -165,7 +165,6 @@ EOF
     fi
 
     if [ ! -f "/etc/httpd/conf.d/vhosts/${DOMAIND}.conf" ]; then
-        if [ "${add_domain_ssl}" = 1 ]; then
         cat > /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
 <VirtualHost *:81>
     ServerAdmin webmaster@llstack.com
@@ -181,7 +180,7 @@ EOF
        Order allow,deny
        Deny from all
     </Files>
-
+    
     #PATH
     <Directory "/var/www/vhosts/${DOMAIND}/html/">
         SetOutputFilter DEFLATE
@@ -192,6 +191,40 @@ EOF
     </Directory>
     Include /etc/httpd/conf.d/php00-php.conf
 </VirtualHost>
+EOF
+    else
+        echoR "Targeted file already exist, skip!"
+    fi
+}
+
+changephp() {
+    NEWKEY="Include /etc/httpd/conf.d/php${phpVer}-php.conf"
+    line_change 'Include /etc/httpd/conf.d/' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+    systemctl restart httpd.service
+}
+
+set_server_conf() {
+    NEWKEY="map                     ${DOMAIND} ${WWW_DOMAIN}" 
+    PORT_ARR=$(grep "address.*:[0-9]"  /usr/local/lsws/conf/httpd_config.conf | awk '{print substr($2,3)}')
+    if [  ${#PORT_ARR[@]} != 0 ]; then
+        for PORT in ${PORT_ARR[@]}; do 
+            line_insert ":${PORT}$"  /usr/local/lsws/conf/httpd_config.conf "${NEWKEY}" 2
+        done
+    else
+        echoR 'No listener port detected, listener setup skip!'    
+    fi
+    echo "
+virtualhost ${DOMAIND} {
+vhRoot                  /var/www/vhosts/${DOMAIND}
+configFile              /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
+allowSymbolLink         1
+enableScript            1
+restrained              1
+}" >>/usr/local/lsws/conf/httpd_config.conf
+}
+
+add_ssl_domain(){
+    cat >> /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
 <VirtualHost *:445>
     ServerAdmin webmaster@llstack.com
     DocumentRoot "/var/www/vhosts/${DOMAIND}/html/"
@@ -225,65 +258,17 @@ EOF
     </Directory>
     Include /etc/httpd/conf.d/php00-php.conf
 </VirtualHost>
+
 EOF
-        else
-        cat > /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
-<VirtualHost *:81>
-    ServerAdmin webmaster@llstack.com
-    DocumentRoot "/var/www/vhosts/${DOMAIND}/html/"
-    ServerName ${DOMAIND}
-    ServerAlias www.${DOMAIND} 
-    #errorDocument 404 /404.html
-    ErrorLog "/var/log/httpd/${DOMAIND}-error.log"
-    CustomLog "/var/log/httpd/${DOMAIND}-access.log" combined
-    
-    #DENY FILES
-     <Files ~ (\.user.ini|\.htaccess|\.git|\.svn|\.project|LICENSE|README.md)$>
-       Order allow,deny
-       Deny from all
-    </Files>
-    
-    #PATH
-    <Directory "/var/www/vhosts/${DOMAIND}/html/">
-        SetOutputFilter DEFLATE
-        Options FollowSymLinks
-        AllowOverride All
-        Require all granted
-        DirectoryIndex index.php index.html index.htm default.php default.html default.htm
-    </Directory>
-    Include /etc/httpd/conf.d/php00-php.conf
-</VirtualHost>
-EOF
-        fi
-    else
-        echoR "Targeted file already exist, skip!"
-    fi
 }
 
-changephp() {
-    NEWKEY="Include /etc/httpd/conf.d/php${phpVer}-php.conf"
-    line_change 'Include /etc/httpd/conf.d/' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
-    systemctl restart httpd.service
-}
-
-set_server_conf() {
-    NEWKEY="map                     ${DOMAIND} ${WWW_DOMAIN}" 
-    PORT_ARR=$(grep "address.*:[0-9]"  /usr/local/lsws/conf/httpd_config.conf | awk '{print substr($2,3)}')
-    if [  ${#PORT_ARR[@]} != 0 ]; then
-        for PORT in ${PORT_ARR[@]}; do 
-            line_insert ":${PORT}$"  /usr/local/lsws/conf/httpd_config.conf "${NEWKEY}" 2
-        done
-    else
-        echoR 'No listener port detected, listener setup skip!'    
-    fi
-    echo "
-virtualhost ${DOMAIND} {
-vhRoot                  /var/www/vhosts/${DOMAIND}
-configFile              /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
-allowSymbolLink         1
-enableScript            1
-restrained              1
-}" >>/usr/local/lsws/conf/httpd_config.conf
+change_self_ssl(){
+      NEWKEY='SSLCertificateFile ${self_ssl_crt}"'
+      line_change 'SSLCertificateFile' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"  
+      NEWKEY='SSLCertificateKeyFile "${self_ssl_key}"'
+      line_change 'SSLCertificateKeyFile' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"
+      bash /usr/local/lsws/bin/lswsctrl restart
+      systemctl restart httpd.service
 }
 
 update_vh_conf(){
@@ -292,6 +277,7 @@ update_vh_conf(){
 check_ssl_acme(){
     if [ ! -d "/root/.acme.sh/certs/${DOMAIND}" ]; then
         echoR 'Please use acme.sh to issue the certificate first'
+        exit 1
     fi
 }
 
@@ -306,9 +292,9 @@ add_domain(){
         echo "# It appears the domain already exist! Check the ${OLS_HTTPD_CONF} if you believe this is a mistake!"
         exit 1
     fi
-    if [[ "${add_domain_ssl}" = "1" || "${self_ssl_key}" = '' || "${self_ssl_crt}" = '' ]]; then
-        check_ssl_acme
-    fi
+    #if [[ "${add_domain_ssl}" = "1" || "${self_ssl_key}" != '' || "${self_ssl_crt}" != '' ]]; then
+    #    check_ssl_acme
+    #fi
     add_ols_domain
     set_server_conf
     update_vh_conf
@@ -329,14 +315,15 @@ while [ ! -z "${1}" ]; do
             add_domain ${1}
             ;;      
         -[sS] | -ssl | --SSL) shift
-            add_domain_ssl='1'
+            check_ssl_acme
+            add_ssl_domain
             ;;
         -[kK] | -key | --KEY) shift
-            add_domain_ssl='1'
             self_ssl_key=${1}
             ;;
         -[cC] | -crt | --CRT) shift
             self_ssl_crt=${1}
+            change_self_ssl
             ;;
         -[pP] | -php | --PHP) shift
             phpVer=${1}

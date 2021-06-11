@@ -63,6 +63,10 @@ install_php(){
       ;;
     esac
 
+      NEWKEY="user = nobody"
+      line_change 'user = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+      NEWKEY="group = nobody"
+      line_change 'group = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.owner = nobody"
       line_change 'listen.owner = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.group = nobody"
@@ -71,6 +75,8 @@ install_php(){
       line_change 'listen.mode = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"  
       NEWKEY='listen.backlog = 4096'
       line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"   
+      NEWKEY="listen.acl_users = nobody"
+      line_change 'listen.acl_users = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
 
       systemctl enable php${phpInsVer}-php-fpm
       systemctl start php${phpInsVer}-php-fpm

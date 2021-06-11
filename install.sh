@@ -499,6 +499,10 @@ doInstall(){
 
       echo 'Setting PHP-FPM and HTTPD listen'
 
+      NEWKEY="user = nobody"
+      line_change 'user = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+      NEWKEY="group = nobody"
+      line_change 'group = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.owner = nobody"
       line_change 'listen.owner = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.group = nobody"
@@ -506,11 +510,12 @@ doInstall(){
       NEWKEY='listen.mode = 0660'
       line_change 'listen.mode = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"  
       NEWKEY='listen.backlog = 4096'
-      line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"   
-      NEWKEY='User nobody'
-      line_change 'User apache' /etc/httpd/conf/httpd.conf "${NEWKEY}" 
-      NEWKEY='Group nobody'
-      line_change 'Group apache' /etc/httpd/conf/httpd.conf "${NEWKEY}" 
+      line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+      NEWKEY="listen.acl_users = nobody"
+      line_change 'listen.acl_users = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+
+      sed -i "s@User apache@User nobody@g" /etc/httpd/conf/httpd.conf
+      sed -i "s@Group apache@Group nobody@g" /etc/httpd/conf/httpd.conf
   fi
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
