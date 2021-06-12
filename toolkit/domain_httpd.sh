@@ -91,7 +91,7 @@ add_ols_domain(){
     mkdir -p /usr/local/lsws/conf/vhosts/${DOMAIND}
     if [ ! -f "/usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf" ]; then
         cat > /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf << EOF
-docRoot                   $VH_ROOT/html/
+docRoot                   /var/www/vhosts/${DOMAIND}/html/
 vhDomain                  example.llstack.com
 vhAliases                 www.example.llstack.com
 enableGzip                1
@@ -102,7 +102,7 @@ logLevel                ERROR
 rollingSize             10M
 }
 
-accesslog $SERVER_ROOT/logs/$VH_NAME.access.log {
+accesslog \$SERVER_ROOT/logs/\$VH_NAME.access.log {
   useServer               0
   rollingSize             100M
   keepDays                7
@@ -133,8 +133,17 @@ extprocessor apachehttp {
   respBuffer              0
 }
 
+extprocessor apachehttps {
+  type                    proxy
+  address                 https://127.0.0.1:445
+  maxConns                100
+  initTimeout             60
+  retryTimeout            0
+  respBuffer              0
+}
+
 context / {
-  location                $DOC_ROOT/
+  location                \$DOC_ROOT/
   allowBrowse             1
 
   rewrite  {
@@ -148,14 +157,15 @@ rewrite  {
   logLevel                0
   rules                   <<<END_rules
 RewriteCond %{HTTPS} !=on
-RewriteRule ^(.*)$ http://apachehttp/$1 [P,L,E=proxy-host:example.llstack.com]
+RewriteRule ^(.*)$ http://apachehttp/\$1 [P,L,E=proxy-host:example.llstack.com]
+RewriteRule ^(.*)$ http://apachehttps/\$1 [P,L,E=proxy-host:example.llstack.com]
   END_rules
 
 }
 
 vhssl  {
-  keyFile                 /root/.acme.sh/certs/$VH_NAME/$VH_NAME.key
-  certFile                /root/.acme.sh/certs/$VH_NAME/fullchain.cer
+  keyFile                 /root/.acme.sh/certs/${DOMAIND}/${DOMAIND}.key
+  certFile                /root/.acme.sh/certs/${DOMAIND}/fullchain.cer
   certChain               1
 }
 EOF
@@ -198,8 +208,7 @@ EOF
 }
 
 changephp() {
-    NEWKEY="Include /etc/httpd/conf.d/php${phpVer}-php.conf"
-    line_change 'Include /etc/httpd/conf.d/' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"
+    sed -i "s@php00-php.conf@php${phpVer}-php.conf@g" /etc/httpd/conf.d/vhosts/${DOMAIND}.conf
     systemctl restart httpd.service
 }
 
@@ -307,6 +316,7 @@ add_domain(){
     update_vh_conf
     if [ ! -d "/var/www/vhosts/${1}" ]; then 
         mkdir -p /var/www/vhosts/${1}/{html,logs,certs}
+        chown -R nobody:nobody /var/www/vhosts/${1}/
     fi
     bash /usr/local/lsws/bin/lswsctrl restart
     systemctl restart httpd.service

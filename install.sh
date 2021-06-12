@@ -30,8 +30,8 @@ help_message(){
     echo "${EPACE}${EPACE}will install the PerconaDB or MariaDB in OLStack,eg: -m 3 or --mysql 5. 1=MariaDB-10.3,2=MariaDB-10.4,3=MariaDB-10.5,4=MariaDB-10.6,5=Percona-5.7,6=Percona-8.0" 
     echow '-l, --ols, --openlitespeed [OpenLiteSpeed_Option]'
     echo "${EPACE}${EPACE}Will install the OpenLiteSpeed in OLStack, eg: -l 1 or --ols 2.  1=OpenLiteSpeed Stable,2=OpenLiteSpeed Edge"
-    echow '-h, --httpd, --HTTPD [Apache_HTTPD_Option]'
-    echo "${EPACE}${EPACE}Will install the Apache HTTPD 2.4 as Backend, eg: -h 1 or --httpd 0.  1=Install HTTPD,0=Do not Install HTTPD"
+    echow '-a, --apache, --Apache [Apache_HTTPD_Option]'
+    echo "${EPACE}${EPACE}Will install the Apache HTTPD 2.4 as Backend, eg: -a 1 or --apache 0.  1=Install Apache HTTPD,0=Do not Install Apache HTTPD"
     echow '-d, --dbtool, --DBTOOL [DBTool_Option]'
     echo "${EPACE}${EPACE}Will install the DBTool in OLStack, eg: -d 1 or --dbtool 2.  1=AMySQL,2=Adminer.3=phpMyAdmin"
     echow '-cC, --china, --CN [DBTool_Option]'
@@ -403,7 +403,6 @@ doInstall(){
       else
         yum install -y php${phpInsVer}-php-fpm
         systemctl enable php${phpInsVer}-php-fpm
-        systemctl start php${phpInsVer}-php-fpm
         ln -s /etc/httpd/conf.d/php${phpInsVer}-php.conf /etc/httpd/conf.d/php00-php.conf
         #mkdir -p /var/run/php/
         #ln -s /var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock /var/run/php/php-fpm.sock
@@ -480,7 +479,7 @@ doInstall(){
       sed -i "s/443/445/g" /etc/httpd/conf.d/default-ssl.conf
       sed -i "s/443/445/g" //etc/httpd/conf.d/welcome.conf
       rm -f /usr/share/httpd/noindex/index.html
-      cp /tmp/OLStack-yum-${envType}/home/demo/vhosts/ /usr/share/httpd/noindex/
+      cp /tmp/OLStack-yum-${envType}/home/demo/vhosts/* /usr/share/httpd/noindex/
       systemctl restart httpd
       echo 'Setting OLS'
 
@@ -517,6 +516,8 @@ doInstall(){
 
       sed -i "s@User apache@User nobody@g" /etc/httpd/conf/httpd.conf
       sed -i "s@Group apache@Group nobody@g" /etc/httpd/conf/httpd.conf
+
+      systemctl start php${phpInsVer}-php-fpm
   fi
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
@@ -710,7 +711,7 @@ main() {
     if [ -n "$1" ]; then
         preInstall
     else
-        doInstall "${mysqlV}" "${phpV}" "${LiteSpeedV}" "${dbV}" "${freeV}"
+        doInstall "${mysqlV}" "${phpV}" "${LiteSpeedV}" "${HttpdV}" "${dbV}" "${freeV}"
     fi
 }
 
@@ -746,7 +747,7 @@ clear
         -[lL] | -ols | --openlitespeed) shift
             LiteSpeedV="${1}"
             ;;
-        -[hH] | -HTTPD | --httpd) shift
+        -[aA] | -apache | --Apache) shift
             HttpdV="${1}"
             ;;
         -[dD] | -dbtool | --DBTOOL) shift
