@@ -158,9 +158,13 @@ rewrite  {
   rules                   <<<END_rules
 RewriteCond %{HTTPS} !=on
 RewriteRule ^(.*)$ http://apachehttp/\$1 [P,L,E=proxy-host:example.llstack.com]
-RewriteRule ^(.*)$ http://apachehttps/\$1 [P,L,E=proxy-host:example.llstack.com]
+RewriteRule ^(.*)$ https://apachehttps/\$1 [P,L,E=proxy-host:example.llstack.com]
   END_rules
 
+}
+
+phpIniOverride  {
+php_admin_value open_basedir "/tmp:\$VH_ROOT"
 }
 
 vhssl  {
@@ -213,7 +217,7 @@ changephp() {
 }
 
 set_server_conf() {
-    NEWKEY="map                     ${DOMAIND} ${WWW_DOMAIN}" 
+    NEWKEY="map                     ${DOMAIND} ${DOMAIND}, ${WWW_DOMAIN}" 
     PORT_ARR=$(grep "address.*:[0-9]"  /usr/local/lsws/conf/httpd_config.conf | awk '{print substr($2,3)}')
     if [  ${#PORT_ARR[@]} != 0 ]; then
         for PORT in ${PORT_ARR[@]}; do 
@@ -290,9 +294,9 @@ update_vh_conf(){
 check_ssl_acme(){
     if [ ! -f "/root/.acme.sh/acme.sh" ]; then
         bash ./acme.sh --install --no-email
-        acme_checkD = '1'
+        acme_checkD='1'
     else
-        acme_checkD= '1'
+        acme_checkD='1'
         exit 1
     fi
 }

@@ -473,10 +473,11 @@ doInstall(){
       sed -i '/LoadModule mpm_event_module/s/^#//g' /etc/httpd/conf.modules.d/00-mpm.conf
       #sed -i "s+SetHandler application/x-httpd-php+SetHandler proxy:unix:/var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock|fcgi://localhost+g" /etc/httpd/conf.d/php.conf
       cp /tmp/OLStack-yum-${envType}/conf/deflate.conf /etc/httpd/conf.d
-      cp /tmp/OLStack-yum-${envType}/conf/default-ssl.conf /etc/httpd/conf.d
-      sed -i '/ErrorLog/s/^/#/g' /etc/httpd/conf.d/default-ssl.conf
+      #cp /tmp/OLStack-yum-${envType}/conf/default-ssl.conf /etc/httpd/conf.d
+      #sed -i '/ErrorLog/s/^/#/g' /etc/httpd/conf.d/default-ssl.conf
       sed -i "s/80/81/g" /etc/httpd/conf/httpd.conf
-      sed -i "s/443/445/g" /etc/httpd/conf.d/default-ssl.conf
+      #sed -i "s/443/445/g" /etc/httpd/conf.d/default-ssl.conf
+      sed -i "s/443/445/g" /etc/httpd/conf.d/ssl.conf
       sed -i "s/443/445/g" //etc/httpd/conf.d/welcome.conf
       rm -f /usr/share/httpd/noindex/index.html
       cp /tmp/OLStack-yum-${envType}/home/demo/vhosts/* /usr/share/httpd/noindex/
@@ -615,6 +616,7 @@ doInstall(){
     touch /root/defaulthtpasswd
     echo "llstackadmin:$LSPASSRAND" > /root/defaulthtpasswd
     /usr/local/lsws/bin/lswsctrl restart >/dev/null
+    systemctl start php${phpInsVer}-php-fpm
   fi
 
   #wget -P /root/ https://raw.githubusercontent.com/ivmm/LLStack/master/vhost.sh

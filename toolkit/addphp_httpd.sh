@@ -82,6 +82,7 @@ install_php(){
 
 httpd_restart(){
     systemctl restart httpd >/dev/null
+    systemctl restart php${phpInsVer}-php-fpm
 }
 
 main_addphp(){
