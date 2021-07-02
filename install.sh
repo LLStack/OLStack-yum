@@ -398,7 +398,7 @@ doInstall(){
 
       if [ "${HttpdV}" != '1' ]; then
         yum install -y php${phpInsVer}-php-litespeed
-        mkdir -p /usr/local/lsws/lsphp${phpInsVer}/
+        mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
         ln -s /opt/remi/php${phpInsVer}/root/usr/bin/lsphp /usr/local/lsws/lsphp${phpInsVer}/bin/lsphp
       else
         yum install -y php${phpInsVer}-php-fpm
@@ -616,7 +616,7 @@ doInstall(){
     touch /root/defaulthtpasswd
     echo "llstackadmin:$LSPASSRAND" > /root/defaulthtpasswd
     /usr/local/lsws/bin/lswsctrl restart >/dev/null
-    systemctl start php${phpInsVer}-php-fpm
+    systemctl restart php${phpInsVer}-php-fpm
   fi
 
   #wget -P /root/ https://raw.githubusercontent.com/ivmm/LLStack/master/vhost.sh

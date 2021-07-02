@@ -21,6 +21,12 @@ help_message(){
     echo "${EPACE}${EPACE}Will add domain to listener and creat a virtual host from template"
     echow '-p, --php [PHP_version]'
     echo "${EPACE}${EPACE}Will use the specified PHP version on the vhost" 
+    echow '-S, --ssl'
+    echo "${EPACE}${EPACE}Will use the acme ssl cert,but you should use the acme.sh to issue the cert first!" 
+    echow '-K, --key [SSLKey_Dir]'
+    echo "${EPACE}${EPACE}Use you own SSL key to enable SSL,Please fill in the path of the ssl Privite Key" 
+    echow '-C, --crt [SSLCrt_dir]'
+    echo "${EPACE}${EPACE}Use you own SSL Crt to enable SSL,Please fill in the path of the ssl certificate"  
     echow '-H, --help'
     echo "${EPACE}${EPACE}Display help." 
 }
@@ -230,8 +236,66 @@ restrained              1
 }" >>/usr/local/lsws/conf/httpd_config.conf
 }
 
+add_ssl_domain(){
+    if [  ${acme_checkD} = 1 ]; then
+        bash ./acme.sh -D ${DOMAIND}
+    fi
+    cat >> /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
+<VirtualHost *:445>
+    ServerAdmin webmaster@llstack.com
+    DocumentRoot "/var/www/vhosts/${DOMAIND}/html/"
+    ServerName ${DOMAIND}
+    ServerAlias www.${DOMAIND} 
+    #errorDocument 404 /404.html
+    ErrorLog "/var/log/httpd/${DOMAIND}-error.log"
+    CustomLog "/var/log/httpd/${DOMAIND}-access.log" combined
+    
+    #SSL
+    SSLEngine On
+    SSLCertificateFile /root/.acme.sh/certs/${DOMAIND}/fullchain.cer
+    SSLCertificateKeyFile /root/.acme.sh/certs/${DOMAIND}/${DOMAIND}.key
+    SSLCipherSuite TLS13-AES-256-GCM-SHA384:TLS13-CHACHA20-POLY1305-SHA256:TLS13-AES-128-GCM-SHA256:TLS13-AES-128-CCM-8-SHA256:TLS13-AES-128-CCM-SHA256:EECDH+CHACHA20:EECDH+CHACHA20-draft:EECDH+ECDSA+AES128:EECDH+aRSA+AES128:RSA+AES128:EECDH+ECDSA+AES256:EECDH+aRSA+AES256:RSA+AES256:EECDH+ECDSA+3DES:EECDH+aRSA+3DES:RSA+3DES:!MD5;
+    SSLProtocol All -SSLv2 -SSLv3 -TLSv1
+    SSLHonorCipherOrder On
+
+    #DENY FILES
+     <Files ~ (\.user.ini|\.htaccess|\.git|\.svn|\.project|LICENSE|README.md)$>
+       Order allow,deny
+       Deny from all
+    </Files>
+
+    #PATH
+    <Directory "/var/www/vhosts/${DOMAIND}/html/">
+        SetOutputFilter DEFLATE
+        Options FollowSymLinks
+        AllowOverride All
+        Require all granted
+        DirectoryIndex index.php index.html index.htm default.php default.html default.htm
+    </Directory>
+    Include /etc/httpd/conf.d/php00-php.conf
+</VirtualHost>
+
+EOF
+}
+
+change_self_ssl(){
+    NEWKEY='SSLCertificateFile ${self_ssl_crt}"'
+    line_change 'SSLCertificateFile' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"  
+    NEWKEY='SSLCertificateKeyFile "${self_ssl_key}"'
+    line_change 'SSLCertificateKeyFile' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"
+}
+
 update_vh_conf(){
     sed -i 's|example.llstack.com|'${DOMAIND}'|g' /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
+}
+check_ssl_acme(){
+    if [ ! -f "/root/.acme.sh/acme.sh" ]; then
+        bash ./acme.sh --install --no-email
+        acme_checkD='1'
+    else
+        acme_checkD='1'
+        exit 1
+    fi
 }
 
 
@@ -245,6 +309,9 @@ add_domain(){
         echo "# It appears the domain already exist! Check the ${OLS_HTTPD_CONF} if you believe this is a mistake!"
         exit 1
     fi
+    #if [[ "${add_domain_ssl}" = "1" || "${self_ssl_key}" != '' || "${self_ssl_crt}" != '' ]]; then
+    #    check_ssl_acme
+    #fi
     add_ols_domain
     set_server_conf
     update_vh_conf
@@ -272,6 +339,19 @@ while [ ! -z "${1}" ]; do
         -[aA] | -add | --add) shift
             add_domain ${1}
             ;;      
+        -[sS] | -ssl | --SSL) shift
+            check_ssl_acme
+            add_ssl_domain
+            ;;
+        -[kK] | -key | --KEY) shift
+            self_ssl_key=${1}
+            ;;
+        -[cC] | -crt | --CRT) shift
+            self_ssl_crt=${1}
+            self_ssl_crtD=1
+            change_self_ssl
+            lsws_restart
+            ;;
         -[pP] | -php | --PHP) shift
             phpVer=${1}
             changephp
