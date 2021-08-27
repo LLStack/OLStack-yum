@@ -514,9 +514,13 @@ doInstall(){
       line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.acl_users = nobody"
       line_change 'listen.acl_users = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
+      NEWKEY="listen.acl_users = nobody"
+      line_change 'listen.acl_groups = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
 
       sed -i "s@User apache@User nobody@g" /etc/httpd/conf/httpd.conf
       sed -i "s@Group apache@Group nobody@g" /etc/httpd/conf/httpd.conf
+
+      chown -R nobody:nobody /var/opt/remi/php${phpInsVer}/lib/php/
 
       systemctl start php${phpInsVer}-php-fpm
   fi
