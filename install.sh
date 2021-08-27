@@ -69,8 +69,8 @@ LiteSpeedV='0'
 dbV='0'
 freeV='1'
 
-OpenLiteSpeedVersionStable='openlitespeed-1.7.11-1'
-OpenLiteSpeedVersionEdge='openlitespeed-1.7.11-1'
+OpenLiteSpeedVersionStable='openlitespeed-1.7.13-1'
+OpenLiteSpeedVersionEdge='openlitespeed-1.7.13-1'
 
 # show success message
 showOk(){
