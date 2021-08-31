@@ -34,7 +34,7 @@ help_message(){
     echo "${EPACE}${EPACE}Will install the Apache HTTPD 2.4 as Backend, eg: -a 1 or --apache 0.  1=Install Apache HTTPD,0=Do not Install Apache HTTPD"
     echow '-d, --dbtool, --DBTOOL [DBTool_Option]'
     echo "${EPACE}${EPACE}Will install the DBTool in OLStack, eg: -d 1 or --dbtool 2.  1=AMySQL,2=Adminer.3=phpMyAdmin"
-    echow '-cC, --china, --CN [DBTool_Option]'
+    echow '-cC, --china, --CN [Network_Option]'
     echo "${EPACE}${EPACE}Help Accelerate Chinese Network, eg: -c 1 or --CN 2.  1=Default Network,2=Chinese NetWork Acclerate"
     echow '-H, --help'
     echo "${EPACE}${EPACE}Display help and exit."       
@@ -120,7 +120,7 @@ runInstall(){
   echo "1) MariaDB-10.3"
   echo "2) MariaDB-10.4"
   echo "3) MariaDB-10.5"
-  echo "4) MariaDB-10.6 unstable"
+  echo "4) MariaDB-10.6"
   echo "5) Percona Server 5.7(MySQL)"
   echo "6) Percona Server 8.0(MySQL)"
   echo "0) Not need"
@@ -254,9 +254,9 @@ doInstall(){
   echo 'Install EPEL & Firewalld'
 
   if [ -f "/etc/alinux-release" ]; then
-    yum install -y yum-utils firewalld firewall-config
+    yum install -y yum-utils firewalld firewall-config socat
   else
-    yum install -y epel-release yum-utils firewalld firewall-config
+    yum install -y epel-release yum-utils firewalld firewall-config socat
   fi
 
   if [ "${mysqlV}" != '0' ]; then
@@ -514,8 +514,6 @@ doInstall(){
       line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
       NEWKEY="listen.acl_users = nobody"
       line_change 'listen.acl_users = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
-      NEWKEY="listen.acl_users = nobody"
-      line_change 'listen.acl_groups = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
 
       sed -i "s@User apache@User nobody@g" /etc/httpd/conf/httpd.conf
       sed -i "s@Group apache@Group nobody@g" /etc/httpd/conf/httpd.conf
@@ -523,6 +521,7 @@ doInstall(){
       chown -R nobody:nobody /var/opt/remi/php${phpInsVer}/lib/php/
 
       systemctl start php${phpInsVer}-php-fpm
+      systemctl restart httpd
   fi
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then

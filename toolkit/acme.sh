@@ -166,9 +166,9 @@ doc_root_verify(){
 install_cert(){
     echo '[Start] Apply Lets Encrypt Certificate'
     if [ ${TYPE} = 1 ]; then
-        /root/.acme.sh/acme.sh --issue -d ${1} -w ${DOC_PATH}
+        /root/.acme.sh/acme.sh --issue -d ${1} -w ${DOC_PATH} --server letsencrypt
     elif [ ${TYPE} = 2 ]; then
-        /root/.acme.sh/acme.sh --issue -d ${1} -d www.${1} -w ${DOC_PATH}
+        /root/.acme.sh/acme.sh --issue -d ${1} -d www.${1} -w ${DOC_PATH} --server letsencrypt
     else
         echo 'unknown Type!'
         exit 2

@@ -205,11 +205,6 @@ EOF
     fi
 }
 
-changephp() {
-    sed -i "s@php00-php.conf@php${phpVer}-php.conf@g" /etc/httpd/conf.d/vhosts/${DOMAIND}.conf
-    systemctl restart httpd.service
-}
-
 set_server_conf() {
     NEWKEY="map                     ${DOMAIND} ${DOMAIND}, ${WWW_DOMAIN}" 
     PORT_ARR=$(grep "address.*:[0-9]"  /usr/local/lsws/conf/httpd_config.conf | awk '{print substr($2,3)}')
@@ -254,6 +249,23 @@ add_domain(){
     fi
     bash /usr/local/lsws/bin/lswsctrl restart
     systemctl restart httpd.service
+}
+
+changephp(){
+    if [ ! -f "/etc/httpd/conf.d/php${phpVer}-php.conf" ]; then
+        echo "The php{phpVer} is not Install"
+        exit 1
+    fi
+
+    if [  -f "/etc/httpd/conf.d/php${DOMAIND}-php.conf" ]; then
+        rm -rf /etc/httpd/conf.d/php${DOMAIND}-php.conf
+    fi
+
+    ln -s /etc/httpd/conf.d/php${phpInsVer}-php.conf /etc/httpd/conf.d/php${DOMAIND}-php.conf
+
+    sed -i "s@php00-php.conf@php${DOMAIND}-php.conf@g" /etc/httpd/conf.d/vhosts/${DOMAIND}.conf
+    systemctl restart httpd.service
+
 }
 
 lsws_restart(){

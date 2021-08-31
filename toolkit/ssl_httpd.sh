@@ -4,6 +4,10 @@ LSDIR='/usr/local/lsws'
 OLS_HTTPD_CONF="${LSDIR}/conf/httpd_config.conf"
 LSV='openlitespeed'
 EPACE='        '
+add_ssl_domainD=''
+letencryptD=''
+self_ssl_crtD=''
+change_self_sslD=''
 
 echow(){
     FLAG=${1}
@@ -19,8 +23,6 @@ help_message(){
     echo -e "\033[1mOPTIONS\033[0m"
     echow '-A, --add [DOMAIN_NAME]'
     echo "${EPACE}${EPACE}Will add domain to listener and creat a virtual host from template"
-    echow '-p, --php [PHP_version]'
-    echo "${EPACE}${EPACE}Will use the specified PHP version on the vhost" 
     echow '-S, --ssl'
     echo "${EPACE}${EPACE}Will use the acme ssl cert,but you should use the acme.sh to issue the cert first!" 
     echow '-K, --key [SSLKey_Dir]'
@@ -87,159 +89,48 @@ line_insert(){
     fi  
 }
 
-add_ols_domain(){
-    mkdir -p /usr/local/lsws/conf/vhosts/${DOMAIND}
-    if [ ! -f "/usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf" ]; then
-        cat > /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf << EOF
-docRoot                   /var/www/vhosts/${DOMAIND}/html/
-vhDomain                  example.llstack.com
-vhAliases                 www.example.llstack.com
-enableGzip                1
-
-errorlog \$SERVER_ROOT/logs/\$VH_NAME.error_log {
-useServer               0
-logLevel                ERROR
-rollingSize             10M
-}
-
-accesslog \$SERVER_ROOT/logs/\$VH_NAME.access.log {
-  useServer               0
-  rollingSize             100M
-  keepDays                7
-  compressArchive         1
-}
-
-index  {
-  useServer               0
-  indexFiles              index.html, index.php
-  autoIndex               0
-  autoIndexURI            /_autoindex/default.php
-}
-
-expires  {
-  enableExpires           1
-}
-
-accessControl  {
-  allow                   *
-}
-
-extprocessor apachehttp {
-  type                    proxy
-  address                 http://127.0.0.1:81
-  maxConns                100
-  initTimeout             50
-  retryTimeout            0
-  respBuffer              0
-}
-
-extprocessor apachehttps {
-  type                    proxy
-  address                 https://127.0.0.1:445
-  maxConns                100
-  initTimeout             60
-  retryTimeout            0
-  respBuffer              0
-}
-
-context / {
-  location                \$DOC_ROOT/
-  allowBrowse             1
-
-  rewrite  {
-RewriteFile .htaccess
-  }
-}
-
-rewrite  {
-  enable                  1
-  autoLoadHtaccess        1
-  logLevel                0
-  rules                   <<<END_rules
-RewriteCond %{HTTPS} !=on
-RewriteRule ^(.*)$ http://apachehttp/\$1 [P,L,E=proxy-host:example.llstack.com]
-RewriteRule ^(.*)$ https://apachehttps/\$1 [P,L,E=proxy-host:example.llstack.com]
-  END_rules
-
-}
-
-phpIniOverride  {
-php_admin_value open_basedir "/tmp:\$VH_ROOT"
-}
-
-vhssl  {
-  keyFile                 /root/.acme.sh/certs/${DOMAIND}/${DOMAIND}.key
-  certFile                /root/.acme.sh/certs/${DOMAIND}/fullchain.cer
-  certChain               1
-}
-EOF
-        chown -R lsadm:lsadm /usr/local/lsws/conf/vhosts/*
-    else
-        echoR "Targeted file already exist, skip!"
-    fi
-
-    if [ ! -f "/etc/httpd/conf.d/vhosts/${DOMAIND}.conf" ]; then
-        cat > /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
-<VirtualHost *:81>
-    ServerAdmin webmaster@llstack.com
-    DocumentRoot "/var/www/vhosts/${DOMAIND}/html/"
-    ServerName ${DOMAIND}
-    ServerAlias www.${DOMAIND} 
-    #errorDocument 404 /404.html
-    ErrorLog "/var/log/httpd/${DOMAIND}-error.log"
-    CustomLog "/var/log/httpd/${DOMAIND}-access.log" combined
-    
-    #DENY FILES
-     <Files ~ (\.user.ini|\.htaccess|\.git|\.svn|\.project|LICENSE|README.md)$>
-       Order allow,deny
-       Deny from all
-    </Files>
-    
-    #PATH
-    <Directory "/var/www/vhosts/${DOMAIND}/html/">
-        SetOutputFilter DEFLATE
-        Options FollowSymLinks
-        AllowOverride All
-        Require all granted
-        DirectoryIndex index.php index.html index.htm default.php default.html default.htm
-    </Directory>
-    Include /etc/httpd/conf.d/php00-php.conf
-</VirtualHost>
-EOF
-    else
-        echoR "Targeted file already exist, skip!"
-    fi
-}
-
-changephp() {
-    sed -i "s@php00-php.conf@php${phpVer}-php.conf@g" /etc/httpd/conf.d/vhosts/${DOMAIND}.conf
-    systemctl restart httpd.service
-}
-
 set_server_conf() {
+    echoR "set_server_conf"
     NEWKEY="map                     ${DOMAIND} ${DOMAIND}, ${WWW_DOMAIN}" 
-    PORT_ARR=$(grep "address.*:[0-9]"  /usr/local/lsws/conf/httpd_config.conf | awk '{print substr($2,3)}')
-    if [  ${#PORT_ARR[@]} != 0 ]; then
-        for PORT in ${PORT_ARR[@]}; do 
-            line_insert ":${PORT}$"  /usr/local/lsws/conf/httpd_config.conf "${NEWKEY}" 2
-        done
-    else
-        echoR 'No listener port detected, listener setup skip!'    
+
+    line_insert "443"  /usr/local/lsws/conf/httpd_config.conf "${NEWKEY}" 2
+}
+
+issue_cert(){
+    echoR "issue_cert"
+    if [[ "${acme_checkD}" = 1 || "${letencryptD}" = 1 ]]; then
+        curl -Is http://${DOMAIND}/ | grep -i LiteSpeed > /dev/null 2>&1
+        if [ ${?} = 0 ]; then
+            echo -e "[O] The domain name \033[32m${DOMAIND}\033[0m is accessible."
+            TYPE=1
+            curl -Is http://${WWW_DOMAIN}/ | grep -i LiteSpeed > /dev/null 2>&1
+            if [ ${?} = 0 ]; then
+                echo -e "[O] The domain name \033[32m${WWW_DOMAIN}\033[0m is accessible."
+                TYPE=2
+            else
+                echo -e "[!] The domain name ${WWW_DOMAIN} is inaccessible." 
+            fi
+        else
+            echo -e "[X] The domain name \e[31m${DOMAIND}\e[39m is inaccessible, please verify."
+            exit 1    
+        fi
+
+        echo '[Start] Apply Lets Encrypt Certificate'
+        DOC_PATH="/var/www/vhosts/${DOMAIND}/html"
+        if [ ${TYPE} = 1 ]; then
+            /root/.acme.sh/acme.sh --issue -d ${DOMAIND} -w ${DOC_PATH} --server letsencrypt
+        elif [ ${TYPE} = 2 ]; then
+            /root/.acme.sh/acme.sh --issue -d ${DOMAIND} -d www.${DOMAIND} -w ${DOC_PATH}  --server letsencrypt
+        else
+            echo 'unknown Type!'
+            exit 2
+        fi
+        echo '[End] Apply Lets Encrypt Certificate'
     fi
-    echo "
-virtualhost ${DOMAIND} {
-vhRoot                  /var/www/vhosts/${DOMAIND}
-configFile              /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
-allowSymbolLink         1
-enableScript            1
-restrained              1
-}" >>/usr/local/lsws/conf/httpd_config.conf
 }
 
 add_ssl_domain(){
-    if [  ${acme_checkD} = 1 ]; then
-        bash ./acme.sh -D ${DOMAIND}
-    fi
+    if [ "${add_ssl_domainD}" = "1" ]; then
     cat >> /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
 <VirtualHost *:445>
     ServerAdmin webmaster@llstack.com
@@ -276,59 +167,67 @@ add_ssl_domain(){
 </VirtualHost>
 
 EOF
+fi
 }
 
 change_self_ssl(){
-    NEWKEY='SSLCertificateFile ${self_ssl_crt}"'
-    line_change 'SSLCertificateFile' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"  
-    NEWKEY='SSLCertificateKeyFile "${self_ssl_key}"'
-    line_change 'SSLCertificateKeyFile' /etc/httpd/conf.d/vhosts/${DOMAIND}.conf "${NEWKEY}"
-}
-
-update_vh_conf(){
-    sed -i 's|example.llstack.com|'${DOMAIND}'|g' /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
-}
-check_ssl_acme(){
-    if [ ! -f "/root/.acme.sh/acme.sh" ]; then
-        bash ./acme.sh --install --no-email
-        acme_checkD='1'
-    else
-        acme_checkD='1'
-        exit 1
+    echoR "change_self_ssl"
+    if [ "${change_self_sslD}" = "1" ]; then
+        sed -i "s@SSLCertificateFile.*@SSLCertificateFile '${self_ssl_crt}@g" /etc/httpd/conf.d/vhosts/${DOMAIND}.conf 
+        sed -i "s@SSLCertificateKeyFile.*@SSLCertificateKeyFile ${self_ssl_key}@g" /etc/httpd/conf.d/vhosts/${DOMAIND}.conf
+        sed -i "s@keyFile.*@keyFile                 ${self_ssl_key}@g" /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
+        sed -i "s@certFile.*@certFile               ${self_ssl_crt}@g" /usr/local/lsws/conf/vhosts/${DOMAIND}/vhconf.conf
     fi
 }
 
+check_ssl_acme(){
+    echoR "check_ssl_acme"
+    if [ "${letencryptD}" = "1" ]; then
+        if [ ! -f "/root/.acme.sh/acme.sh" ]; then
+            bash ./acme.sh --install --no-email
+            acme_checkD='1'
+        else
+            acme_checkD='1'
+        fi
+    fi
+}
+
+#echo_things(){
+#    echow  "add_ssl_domainD $add_ssl_domainD"
+#    echow  "letencryptD $letencryptD"
+#    echow  "self_ssl_crtD $self_ssl_crtD"
+#    echow  "change_self_sslD $change_self_sslD"
+#}
+
+changephp(){
+    if [  -f "/etc/httpd/conf.d/php${DOMAIND}-php.conf" ]; then
+        sed -i "s@php00-php.conf@php${DOMAIND}-php.conf@g" /etc/httpd/conf.d/vhosts/${DOMAIND}.conf
+    fi
+}
 
 add_domain(){
     dot_escape ${1}
     DOMAIN=${ESCAPE}
     DOMAIND=${1}
     www_domain ${1}
+    #echo_things
+    check_ssl_acme
     check_duplicate ${DOMAIND} /usr/local/lsws/conf/httpd_config.conf
-    if [ "${CK_RESULT}" != '' ]; then
-        echo "# It appears the domain already exist! Check the ${OLS_HTTPD_CONF} if you believe this is a mistake!"
+    if [ "${CK_RESULT}" = '' ]; then
+        echo "# You should run the domain_httpd.sh first."
         exit 1
     fi
-    #if [[ "${add_domain_ssl}" = "1" || "${self_ssl_key}" != '' || "${self_ssl_crt}" != '' ]]; then
-    #    check_ssl_acme
-    #fi
-    add_ols_domain
+    issue_cert
+    add_ssl_domain
     set_server_conf
-    update_vh_conf
-    if [ ! -d "/var/www/vhosts/${1}" ]; then 
-        mkdir -p /var/www/vhosts/${1}/{html,logs,certs}
-        chown -R nobody:nobody /var/www/vhosts/${1}/
-    fi
+    change_self_ssl
+    changephp
     bash /usr/local/lsws/bin/lswsctrl restart
+    echow  "Restart LiteSpeed"
     systemctl restart httpd.service
+    echow  "Restart HTTPD"
 }
 
-lsws_restart(){
-    /usr/local/lsws/bin/lswsctrl restart >/dev/null
-    if [ -f /etc/httpd/conf/httpd.conf]; then
-        systemctl restart httpd >/dev/null
-    fi
-}
 
 check_input ${1}
 while [ ! -z "${1}" ]; do
@@ -336,26 +235,23 @@ while [ ! -z "${1}" ]; do
         -[hH] | -help | --help)
             help_message
             ;;
-        -[aA] | -add | --add) shift
-            add_domain ${1}
-            ;;      
-        -[sS] | -ssl | --SSL) shift
-            check_ssl_acme
-            add_ssl_domain
+        -[sS] | -ssl | --SSL)
+            add_ssl_domainD='1'
+            ;;
+        -[lL] | -letencrypt | --letencrypt)
+            letencryptD='1'
             ;;
         -[kK] | -key | --KEY) shift
             self_ssl_key=${1}
             ;;
         -[cC] | -crt | --CRT) shift
             self_ssl_crt=${1}
-            self_ssl_crtD=1
-            change_self_ssl
-            lsws_restart
+            self_ssl_crtD='1'
+            change_self_sslD='1'
             ;;
-        -[pP] | -php | --PHP) shift
-            phpVer=${1}
-            changephp
-            ;;    
+        -[aA] | -add | --add) shift
+            add_domain ${1}
+            ;;      
         *) 
             help_message
             ;;
