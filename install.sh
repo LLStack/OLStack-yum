@@ -65,7 +65,7 @@ isUpdate='0'
 mysqlV='0'
 phpV='0'
 HttpdV='0'
-LiteSpeedV='1'
+LiteSpeedV='0'
 dbV='0'
 freeV='1'
 
@@ -424,7 +424,7 @@ doInstall(){
       mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
       ln -s /opt/remi/php${phpInsVer}/root/usr/bin/php /usr/bin/php
       touch /usr/share/php-default-version
-      echo '$phpInsVer' > /usr/share/php-default-version
+      echo "${phpInsVer}" > /usr/share/php-default-version
 
   #if [ "${LiteSpeedV}" != '0' ]; then
   #echo 'Enable LiteSpeedTech REPO'
@@ -632,10 +632,12 @@ doInstall(){
     touch /root/defaulthtpasswd
     echo "llstackadmin:$LSPASSRAND" > /root/defaulthtpasswd
     /usr/local/lsws/bin/lswsctrl restart >/dev/null
-    systemctl restart php${phpInsVer}-php-fpm
+    if [ "${HttpdV}" = '1' ]; then
+      systemctl restart php${phpInsVer}-php-fpm
+    fi
     mkdir -p /root/OLStack-yum/
-    mv /tmp/OLStack-yum/* /rootOLStack-yum/
-    chmod +x /rootOLStack-yum/*
+    mv /tmp/OLStack-yum/* /root/OLStack-yum/
+    chmod +x /root/OLStack-yum/*
   fi
 
   #wget -P /root/ https://raw.githubusercontent.com/ivmm/LLStack/master/vhost.sh
