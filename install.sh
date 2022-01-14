@@ -8,7 +8,7 @@
 #
 # * OpenLiteSpeed Web Server
 # * Percona 5.7 8.0 (MariaDB 10.3/10.4/10.5)
-# * PHP 5.6/7.0/7.1/7.2/7.3/7.4/8.0
+# * PHP 5.6/7.0/7.1/7.2/7.3/7.4/8.0/8.1
 # * phpMyAdmin/Adminer/AMysql
 #
 # https://github.com/LLStack/OLStack-yum/
@@ -69,8 +69,11 @@ LiteSpeedV='0'
 dbV='0'
 freeV='1'
 
-OpenLiteSpeedVersionStable='openlitespeed-1.7.13-1'
-OpenLiteSpeedVersionEdge='openlitespeed-1.7.13-1'
+OpenLiteSpeedVersionStable='openlitespeed-1.7.14-1'
+OpenLiteSpeedVersionEdge='openlitespeed-1.7.14-1'
+AMySQLVer='amysql-1.7'
+PMA49='4.9.7'
+PMA5='5.1.1'
 
 # show success message
 showOk(){
@@ -121,10 +124,11 @@ runInstall(){
   echo "2) MariaDB-10.4"
   echo "3) MariaDB-10.5"
   echo "4) MariaDB-10.6"
-  echo "5) Percona Server 5.7(MySQL)"
-  echo "6) Percona Server 8.0(MySQL)"
+  echo "5) MariaDB-10.7 UnStable"
+  echo "6) Percona Server 5.7(MySQL)"
+  echo "7) Percona Server 8.0(MySQL)"
   echo "0) Not need"
-  read -p 'MySQL [1-5,0]: ' -r -e -i 3 mysqlV
+  read -p 'MySQL [1-5,0]: ' -r -e -i 4 mysqlV
   if [ "${mysqlV}" = '' ]; then
     showError 'Invalid MySQL version'
     exit
@@ -138,6 +142,7 @@ runInstall(){
   echo "5) PHP-7.3"
   echo "6) PHP-7.4"
   echo "7) PHP-8.0"
+  echo "8) PHP-8.1"
   echo "0) Not need"
   read -p 'PHP [1-7,0]: ' -r -e -i 6 phpV
   if [ "${phpV}" = '' ]; then
@@ -263,7 +268,7 @@ doInstall(){
   echo 'Remove Native DB'
   yum -y remove mariadb*
   
-    if [[ "${mysqlV}" = "1" || "${mysqlV}" = "2" || "${mysqlV}" = "3" || "${mysqlV}" = "4" ]]; then
+    if [[ "${mysqlV}" = "1" || "${mysqlV}" = "2" || "${mysqlV}" = "3" || "${mysqlV}" = "4" || "${mysqlV}" = "5" ]]; then
       mariadbV='10.5'
       installDB='mariadb'
       echo 'Disable Native MariaDB'
@@ -281,12 +286,15 @@ doInstall(){
         4)
         mariadbV='10.6'
         ;;
+        5)
+        mariadbV='10.7'
+        ;;
       esac
       echo 'Enable MariaDB REPO'
       rpm --import ${mariaDBRepoUrl}/RPM-GPG-KEY-MariaDB
       echo -e "[mariadb]\\nname = MariaDB\\nbaseurl = ${mariaDBRepoUrl}/${mariadbV}/centos/8/x86_64/\\ngpgkey=file:///etc/pki/rpm-gpg/MariaDB-Server-GPG-KEY\\ngpgcheck=1\\nenabled=1\\nmodule_hotfixes=1" > /etc/yum.repos.d/mariadb.repo
     #elif [[ "${mysqlV}" = "5" ]]; then
-    elif [[ "${mysqlV}" = "5" || "${mysqlV}" = "6" ]]; then
+    elif [[ "${mysqlV}" = "6" || "${mysqlV}" = "7" ]]; then
       echo 'Enable PerconaDB REPO'
       #rpm -Uvh ${mysqlRepoUrl}/yum/percona-release-latest.noarch.rpm
       #rpm --import /tmp/OLStack-yum-${envType}/keys/RPM-GPG-KEY-Percona
@@ -321,15 +329,15 @@ doInstall(){
       mysql_install_db --user=mysql
     elif [ "${installDB}" = "mysqld" ]; then
       echo 'Install PerconaDB'
-      if [ "${mysqlV}" = "5" ]; then
+      if [ "${mysqlV}" = "6" ]; then
         yum install -y Percona-Server-client-57 Percona-Server-server-57
-      elif [ "${mysqlV}" = "6" ]; then
+      elif [ "${mysqlV}" = "7" ]; then
         yum install -y percona-server-client percona-server-server
       fi
       echo 'Initialize Insecure'
         mysqld --initialize-insecure --user=mysql
 
-      if [ "${mysqlV}" = "6" ]; then
+      if [ "${mysqlV}" = "7" ]; then
       echo 'Setting Mysql Native Password'
       sed -i "s@# default-authentication-plugin=mysql_native_password@default-authentication-plugin=mysql_native_password@g" /etc/my.cnf
       fi
@@ -392,6 +400,11 @@ doInstall(){
       echo 'Install PHP80'
       yum install -y php80-php-cli php80-php-bcmath php80-php-gd php80-php-json php80-php-mbstring php80-php-mcrypt php80-php-mysqlnd php80-php-opcache php80-php-pdo php80-php-pecl-crypto php80-php-pecl-mcrypt php80-php-pecl-geoip php80-php-pecl-zip php80-php-snmp php80-php-soap php80-php-xml
       phpInsVer='80'
+      ;;
+      8)
+      echo 'Install php81'
+      yum install -y php81-php-cli php81-php-bcmath php81-php-gd php81-php-json php81-php-mbstring php81-php-mcrypt php81-php-mysqlnd php81-php-opcache php81-php-pdo php81-php-pecl-crypto php81-php-pecl-mcrypt php81-php-pecl-geoip php81-php-pecl-zip php81-php-snmp php81-php-soap php81-php-xml
+      phpInsVer='81'
       ;;
     esac
   fi
@@ -528,10 +541,10 @@ doInstall(){
     if [ "${dbV}" = "1" ]; then
       echo 'Install AMySQL'
       cd /var/www/vhosts/localhost/html/
-      wget http://amh.sh/file/AMS/amysql-1.6.zip
-      unzip -q amysql-1.6.zip
-      rm -rf amysql-1.6.zip
-      mv amysql-1.6 AMysql
+      wget http://amh.sh/file/AMS/${AMySQLVer}.zip
+      unzip -q ${AMySQLVer}.zip
+      rm -rf ${AMySQLVer}.zip
+      mv ${AMySQLVer} AMysql
       sed -i "s/phpMyAdmin/AMysql/g" /var/www/vhosts/localhost/html/index.html
     elif [ "${dbV}" = "2" ]; then
       echo 'Install Adminer'
@@ -542,15 +555,15 @@ doInstall(){
       if [[ "${phpV}" = "1" || "${phpV}" = "2" ]]; then
         echo 'Install phpMyAdmin 4.9'
         cd /var/www/vhosts/localhost/html/
-        wget ${phpMyAdminURL}/phpMyAdmin/4.9.7/phpMyAdmin-4.9.7-all-languages.tar.gz
-        tar xzf phpMyAdmin-4.9.7-all-languages.tar.gz
-        rm -rf phpMyAdmin-4.9.7-all-languages.tar.gz
-        mv phpMyAdmin-4.9.7-all-languages phpMyAdmin
+        wget ${phpMyAdminURL}/phpMyAdmin/${PMA49}/phpMyAdmin-${PMA49}-all-languages.tar.gz
+        tar xzf phpMyAdmin-${PMA49}-all-languages.tar.gz
+        rm -rf phpMyAdmin-${PMA49}-all-languages.tar.gz
+        mv phpMyAdmin-${PMA49}-all-languages phpMyAdmin
       ## PHP 5.5-7.0 仅 PMA 4.8 LTS 支持
       #elif [ "${phpV}}" = "3" || "${phpV}" = "4" || "${phpV}" = "5" ]; then
       #  cd /home/demo/public_html
       #  wget ${phpMyAdminURL}/phpMyAdmin/4.8.5/phpMyAdmin-4.8.5-all-languages.zip
-      #  https://files.phpmyadmin.net/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.zip
+      #  https://files.phpmyadmin.net/phpMyAdmin/${PMA5}/phpMyAdmin-${PMA5}-all-languages.zip
       #  unzip phpMyAdmin-4.8.5-all-languages.zip
       #  rm -rf phpMyAdmin-4.8.5-all-languages.zip
       #  mv phpMyAdmin-4.8.5-all-languages phpMyAdmin
@@ -558,10 +571,10 @@ doInstall(){
       else
         echo 'Install phpMyAdmin 5.1'
         cd /var/www/vhosts/localhost/html/
-        wget ${phpMyAdminURL}/phpMyAdmin/5.1.1/phpMyAdmin-5.1.1-all-languages.tar.gz
-        tar xzf phpMyAdmin-5.1.1-all-languages.tar.gz
-        rm -rf phpMyAdmin-5.1.1-all-languages.tar.gz
-        mv phpMyAdmin-5.1.1-all-languages phpMyAdmin
+        wget ${phpMyAdminURL}/phpMyAdmin/${PMA5}/phpMyAdmin-${PMA5}-all-languages.tar.gz
+        tar xzf phpMyAdmin-${PMA5}-all-languages.tar.gz
+        rm -rf phpMyAdmin-${PMA5}-all-languages.tar.gz
+        mv phpMyAdmin-${PMA5}-all-languages phpMyAdmin
       fi
     fi
   fi
