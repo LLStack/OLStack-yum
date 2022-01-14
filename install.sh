@@ -620,6 +620,9 @@ doInstall(){
     echo "llstackadmin:$LSPASSRAND" > /root/defaulthtpasswd
     /usr/local/lsws/bin/lswsctrl restart >/dev/null
     systemctl restart php${phpInsVer}-php-fpm
+    mkdir -p /root/OLStack-yum/
+    mv /tmp/OLStack-yum/* /rootOLStack-yum/
+    chmod +x /rootOLStack-yum/*
   fi
 
   #wget -P /root/ https://raw.githubusercontent.com/ivmm/LLStack/master/vhost.sh
