@@ -303,14 +303,14 @@ doInstall(){
       installDB='mysqld'
       
       case ${mysqlV} in
-        5)
+        6)
         echo 'Setup PerconaDB 5.7'
         cp -a /tmp/OLStack-yum-${envType}/repo/percona-ps-57-release.repo /etc/yum.repos.d/percona-ps-57-release.repo
         if [ "${freeV}" = "2" ]; then
           sed -i "s@${mysqlUrl}@${mysqlRepoUrl}@g" /etc/yum.repos.d/percona-ps-57-release.repo
         fi
         ;;
-        6)
+        7)
         echo 'Setup PerconaDB 8.0'
         cp -a /tmp/OLStack-yum-${envType}/repo/percona-ps-80-release.repo /etc/yum.repos.d/percona-ps-80-release.repo
         if [ "${freeV}" = "2" ]; then
@@ -636,7 +636,7 @@ doInstall(){
       systemctl restart php${phpInsVer}-php-fpm
     fi
     mkdir -p /root/OLStack-yum/
-    mv /tmp/OLStack-yum/* /root/OLStack-yum/
+    mv /tmp/OLStack-yum-master/* /root/OLStack-yum/
     chmod +x /root/OLStack-yum/*
   fi
 
