@@ -25,9 +25,9 @@ echow(){
 help_message(){
     echo -e "\033[1mOPTIONS\033[0m"
     echow '-p, --php, --lsphp [PHP_Verion]'
-    echo "${EPACE}${EPACE}Will install the lsphp version in OLStack, eg: -p 2 or --php 3.  1=php56,2=php70,3=php71,4=php72,5=php73,6=php74,7=php80"
+    echo "${EPACE}${EPACE}Will install the lsphp version in OLStack, eg: -p 2 or --php 3.  1=php56,2=php70,3=php71,4=php72,5=php73,6=php74,7=php80,8=php81"
     echow '-m, --mysql, --MYSQL [MySQL_Version]'
-    echo "${EPACE}${EPACE}will install the PerconaDB or MariaDB in OLStack,eg: -m 3 or --mysql 5. 1=MariaDB-10.3,2=MariaDB-10.4,3=MariaDB-10.5,4=MariaDB-10.6,5=Percona-5.7,6=Percona-8.0" 
+    echo "${EPACE}${EPACE}will install the PerconaDB or MariaDB in OLStack,eg: -m 3 or --mysql 5. 1=MariaDB-10.3,2=MariaDB-10.4,3=MariaDB-10.5,4=MariaDB-10.6,5=MariaDB-10.7,6=Percona-5.7,7=Percona-8.0" 
     echow '-l, --ols, --openlitespeed [OpenLiteSpeed_Option]'
     echo "${EPACE}${EPACE}Will install the OpenLiteSpeed in OLStack, eg: -l 1 or --ols 2.  1=OpenLiteSpeed Stable,2=OpenLiteSpeed Edge"
     echow '-a, --apache, --Apache [Apache_HTTPD_Option]'
@@ -65,7 +65,7 @@ isUpdate='0'
 mysqlV='0'
 phpV='0'
 HttpdV='0'
-LiteSpeedV='0'
+LiteSpeedV='1'
 dbV='0'
 freeV='1'
 
@@ -163,7 +163,7 @@ runInstall(){
   showNotice "(Step 6) Install Apache HTTPD 2.4 as backend or Not?"
   echo "1) Apache HTTPD 2.4 Backend"
   echo "0) Not need"
-  read -p 'LiteSpeed [1,0]: ' -r -e -i 1 HttpdV
+  read -p 'LiteSpeed [1,0]: ' -r -e -i 0 HttpdV
   if [ "${HttpdV}" = '' ]; then
     showError 'Invalid LiteSpeed select'
     exit
@@ -424,7 +424,7 @@ doInstall(){
       mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
       ln -s /opt/remi/php${phpInsVer}/root/usr/bin/php /usr/bin/php
       touch /usr/share/php-default-version
-      echo '${phpInsVer}' > /usr/share/php-default-version
+      echo '$phpInsVer' > /usr/share/php-default-version
 
   #if [ "${LiteSpeedV}" != '0' ]; then
   #echo 'Enable LiteSpeedTech REPO'
