@@ -74,6 +74,13 @@ install_lsphp(){
         ln -s /opt/remi/php80/root/usr/bin/lsphp /usr/local/lsws/lsphp80/bin/lsphp
       fi
       ;;
+      81)
+      yum install -y php81-php-cli php81-php-bcmath php81-php-gd php81-php-json php81-php-mbstring php81-php-mcrypt php81-php-mysqlnd php81-php-opcache php81-php-pdo php81-php-pecl-crypto php81-php-pecl-mcrypt php81-php-pecl-geoip php81-php-pecl-zip php81-php-snmp php81-php-soap php81-php-xml
+      mkdir -p /usr/local/lsws/lsphp81/bin/
+      if [ ! -f "/usr/local/lsws/lsphp81/bin/lsphp" ]; then
+        ln -s /opt/remi/php81/root/usr/bin/lsphp /usr/local/lsws/lsphp81/bin/lsphp
+      fi
+      ;;
     esac
 }
 

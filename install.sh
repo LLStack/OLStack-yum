@@ -350,6 +350,7 @@ doInstall(){
     }
     echo 'Enable REMI REPO'
     if [ -f "/etc/alinux-release" ]; then
+    if [[ -f "/etc/alinux-release" || -f "/etc/anolis-release" ]]; then
       rpm -Uvh --nodeps ${phpRepoUrl}/enterprise/remi-release-8.rpm
     else
       rpm -Uvh ${phpRepoUrl}/enterprise/remi-release-8.rpm
