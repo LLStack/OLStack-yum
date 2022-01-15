@@ -349,7 +349,6 @@ doInstall(){
       find /etc/yum.repos.d/ -maxdepth 1 -name "remi*.repo" -type f -print0 | xargs -0 sed -i "$1"
     }
     echo 'Enable REMI REPO'
-    if [ -f "/etc/alinux-release" ]; then
     if [[ -f "/etc/alinux-release" || -f "/etc/anolis-release" ]]; then
       rpm -Uvh --nodeps ${phpRepoUrl}/enterprise/remi-release-8.rpm
     else
