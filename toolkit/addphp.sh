@@ -115,10 +115,9 @@ add_lscfg(){
 
 make_default(){
     sed -i "s@lsapi:lsphp.*@lsapi:lsphp${LSPHP} php@g" /usr/local/lsws/conf/httpd_config.conf
-    if [ -f "/usr/bin/php" ]; then
-      mv /usr/bin/php /usr/bin/php.old
-    fi
-      ln -s /opt/remi/php${LSPHP}/root/usr/bin/php /usr/bin/php
+    rm -rf /usr/bin/php
+    ln -s /opt/remi/php${LSPHP}/root/usr/bin/php /usr/bin/php
+    lsws_restart
 }
 
 
@@ -142,7 +141,6 @@ while [ ! -z "${1}" ]; do
             ;;
         -[dD] | -default | --default)
             make_default
-            lsws_restart
             ;;
         *) 
             help_message

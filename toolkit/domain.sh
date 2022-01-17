@@ -106,6 +106,7 @@ add_domain(){
     add_ols_domain
     if [ ! -d "/var/www/vhosts/${1}" ]; then 
         mkdir -p /var/www/vhosts/${1}/{html,logs,certs}
+        mv ../home/demo/vhosts/index.html /var/www/vhosts/${1}/html/
     fi
     bash /usr/local/lsws/bin/lswsctrl restart
 }

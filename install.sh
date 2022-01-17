@@ -438,7 +438,7 @@ doInstall(){
     cp -a /tmp/OLStack-yum-${envType}/home/demo/public_html/* /var/www/vhosts/localhost/html/
 
     echo 'Setting Default LSPHP Version'
-    sed -i "s@lsphp73@lsphp${phpInsVer}@g" /usr/local/lsws/conf/httpd_config.conf
+    sed -i "s@lsphp74@lsphp${phpInsVer}@g" /usr/local/lsws/conf/httpd_config.conf
   fi
 
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
