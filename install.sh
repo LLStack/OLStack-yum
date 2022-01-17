@@ -30,8 +30,6 @@ help_message(){
     echo "${EPACE}${EPACE}will install the PerconaDB or MariaDB in OLStack,eg: -m 3 or --mysql 5. 1=MariaDB-10.3,2=MariaDB-10.4,3=MariaDB-10.5,4=MariaDB-10.6,5=MariaDB-10.7,6=Percona-5.7,7=Percona-8.0" 
     echow '-l, --ols, --openlitespeed [OpenLiteSpeed_Option]'
     echo "${EPACE}${EPACE}Will install the OpenLiteSpeed in OLStack, eg: -l 1 or --ols 2.  1=OpenLiteSpeed Stable,2=OpenLiteSpeed Edge"
-    echow '-a, --apache, --Apache [Apache_HTTPD_Option]'
-    echo "${EPACE}${EPACE}Will install the Apache HTTPD 2.4 as Backend, eg: -a 1 or --apache 0.  1=Install Apache HTTPD,0=Do not Install Apache HTTPD"
     echow '-d, --dbtool, --DBTOOL [DBTool_Option]'
     echo "${EPACE}${EPACE}Will install the DBTool in OLStack, eg: -d 1 or --dbtool 2.  1=AMySQL,2=Adminer.3=phpMyAdmin"
     echow '-cC, --china, --CN [Network_Option]'
@@ -64,7 +62,6 @@ phpMyAdmin_CN='https://phpmyadmin.files.llstack.com'
 isUpdate='0'
 mysqlV='0'
 phpV='0'
-HttpdV='0'
 LiteSpeedV='0'
 dbV='0'
 freeV='1'
@@ -160,16 +157,7 @@ runInstall(){
     exit
   fi
 
-  showNotice "(Step 6) Install Apache HTTPD 2.4 as backend or Not?"
-  echo "1) Apache HTTPD 2.4 Backend"
-  echo "0) Not need"
-  read -p 'LiteSpeed [1,0]: ' -r -e -i 0 HttpdV
-  if [ "${HttpdV}" = '' ]; then
-    showError 'Invalid LiteSpeed select'
-    exit
-  fi
-
-  showNotice "(Step 7) Select the DB tool version"
+  showNotice "(Step 6) Select the DB tool version"
   echo "1) AMySQL"
   echo "2) Adminer"
   echo "3) phpMyAdmin"
@@ -180,7 +168,7 @@ runInstall(){
     exit
   fi
 
-  showNotice "(Step 8) Use a mirror server to download rpms"
+  showNotice "(Step 7) Use a mirror server to download rpms"
   echo "1) Source station"
   echo "2) China Mirror station"
   read -p 'Proxy server [1-2]: ' -r -e -i 2 freeV
@@ -410,33 +398,14 @@ doInstall(){
     esac
   fi
 
-      if [ "${HttpdV}" != '1' ]; then
-        yum install -y php${phpInsVer}-php-litespeed
-        mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
-        ln -s /opt/remi/php${phpInsVer}/root/usr/bin/lsphp /usr/local/lsws/lsphp${phpInsVer}/bin/lsphp
-      else
-        yum install -y php${phpInsVer}-php-fpm
-        systemctl enable php${phpInsVer}-php-fpm
-        ln -s /etc/httpd/conf.d/php${phpInsVer}-php.conf /etc/httpd/conf.d/php00-php.conf
-        #mkdir -p /var/run/php/
-        #ln -s /var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock /var/run/php/php-fpm.sock
-      fi
+      yum install -y php${phpInsVer}-php-litespeed
+      mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
+      ln -s /opt/remi/php${phpInsVer}/root/usr/bin/lsphp /usr/local/lsws/lsphp${phpInsVer}/bin/lsphp
 
       mkdir -p /usr/local/lsws/lsphp${phpInsVer}/bin/
       ln -s /opt/remi/php${phpInsVer}/root/usr/bin/php /usr/bin/php
       touch /usr/share/php-default-version
       echo "${phpInsVer}" > /usr/share/php-default-version
-
-  #if [ "${LiteSpeedV}" != '0' ]; then
-  #echo 'Enable LiteSpeedTech REPO'
-  #  rpm -Uvh ${LiteSpeedRepoUrl}/centos/litespeed-repo-1.2-1.el8.noarch.rpm
-
-  #  LiteSpeedRepo=/etc/yum.repos.d/litespeed.repo
-
-  #  sed -i "s@${LiteSpeedUrl}@${LiteSpeedRepoUrl}@g" ${LiteSpeedRepo}
-  #fi
-
-  #yum clean all
 
   if [ "${LiteSpeedV}" != '0' ]; then
     cd /tmp
@@ -472,72 +441,6 @@ doInstall(){
     sed -i "s@lsphp73@lsphp${phpInsVer}@g" /usr/local/lsws/conf/httpd_config.conf
   fi
 
-  if [ "${HttpdV}" = "1" ]; then
-
-  echo 'Install and Setting HTTPD'
-
-      yum install httpd mod_ssl -y
-      echo "Protocols h2 http/1.1" >> /etc/httpd/conf/httpd.conf
-      echo "Include /etc/httpd/conf.d/vhosts/*.conf" >> /etc/httpd/conf/httpd.conf
-      mkdir -p /etc/httpd/conf.d/vhosts
-      cp /tmp/OLStack-yum-${envType}/conf/apa_0.conf /etc/httpd/conf.d/vhosts/0.conf
-      sed -i '/logs\/access_log" common/s/^/#/' /etc/httpd/conf/httpd.conf
-      sed -i "s@/var/www@/var/www/vhosts/localhost@g" /etc/httpd/conf/httpd.conf
-      sed -i '/LoadModule mpm_prefork_module/s/^/#/g' /etc/httpd/conf.modules.d/00-mpm.conf
-      sed -i '/LoadModule mpm_event_module/s/^#//g' /etc/httpd/conf.modules.d/00-mpm.conf
-      #sed -i "s+SetHandler application/x-httpd-php+SetHandler proxy:unix:/var/opt/remi/php${phpInsVer}/run/php-fpm/www.sock|fcgi://localhost+g" /etc/httpd/conf.d/php.conf
-      cp /tmp/OLStack-yum-${envType}/conf/deflate.conf /etc/httpd/conf.d
-      #cp /tmp/OLStack-yum-${envType}/conf/default-ssl.conf /etc/httpd/conf.d
-      #sed -i '/ErrorLog/s/^/#/g' /etc/httpd/conf.d/default-ssl.conf
-      sed -i "s/80/81/g" /etc/httpd/conf/httpd.conf
-      #sed -i "s/443/445/g" /etc/httpd/conf.d/default-ssl.conf
-      sed -i "s/443/445/g" /etc/httpd/conf.d/ssl.conf
-      sed -i "s/443/445/g" //etc/httpd/conf.d/welcome.conf
-      rm -f /usr/share/httpd/noindex/index.html
-      cp /tmp/OLStack-yum-${envType}/home/demo/vhosts/* /usr/share/httpd/noindex/
-      systemctl restart httpd
-      echo 'Setting OLS'
-
-      mv /usr/local/lsws/conf/httpd_config.conf /usr/local/lsws/conf/httpd_config.conf.apa.old
-      #mv /usr/local/lsws/Example/conf/vhconf.conf /usr/local/lsws/Example/conf/vhconf.conf.apa.old
-      cp /tmp/OLStack-yum-${envType}/conf/apa_httpd_config.conf /usr/local/lsws/conf/httpd_config.conf
-      if [ -d "/usr/local/lsws/conf/vhosts/Example/" ]; then
-          mkdir -p /usr/local/lsws/conf/vhosts/Example/
-      fi
-      cp /tmp/OLStack-yum-${envType}/conf/apa_vhconf.conf /usr/local/lsws/conf/vhosts/Example/vhconf.conf
-      sed -i "s/www.example.com/${ipAddress}/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
-      sed -i "s/www-data/nobody/g" /usr/local/lsws/conf/httpd_config.conf
-      #sed -i "s|/usr/local/lsws/lsphp${phpInsVer}/bin/lsphp|/usr/bin/lsphp|g" /usr/local/lsws/conf/httpd_config.conf
-      sed -i "s/:80/:81/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
-      sed -i "s/:443/:445/g" /usr/local/lsws/conf/vhosts/Example/vhconf.conf
-      chown -R nobody:nobody /usr/local/lsws/cachedata
-      rm -f /tmp/lshttpd/.rtreport
-      service lsws restart
-
-      echo 'Setting PHP-FPM and HTTPD listen'
-
-      sed -i "s@user = apache@user = nobody@g" /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf
-      sed -i "s@group = apache@group = nobody@g" /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf
-      NEWKEY="listen.owner = nobody"
-      line_change 'listen.owner = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
-      NEWKEY="listen.group = nobody"
-      line_change 'listen.group = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
-      NEWKEY='listen.mode = 0660'
-      line_change 'listen.mode = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"  
-      NEWKEY='listen.backlog = 4096'
-      line_change 'listen.backlog' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
-      NEWKEY="listen.acl_users = nobody"
-      line_change 'listen.acl_users = ' /etc/opt/remi/php${phpInsVer}/php-fpm.d/www.conf "${NEWKEY}"
-
-      sed -i "s@User apache@User nobody@g" /etc/httpd/conf/httpd.conf
-      sed -i "s@Group apache@Group nobody@g" /etc/httpd/conf/httpd.conf
-
-      chown -R nobody:nobody /var/opt/remi/php${phpInsVer}/lib/php/
-
-      systemctl start php${phpInsVer}-php-fpm
-      systemctl restart httpd
-  fi
-
   if [[ "${phpV}" != '0' && "${LiteSpeedV}" != '0' ]]; then
     if [ "${dbV}" = "1" ]; then
       echo 'Install AMySQL'
@@ -560,15 +463,6 @@ doInstall(){
         tar xzf phpMyAdmin-${PMA49}-all-languages.tar.gz
         rm -rf phpMyAdmin-${PMA49}-all-languages.tar.gz
         mv phpMyAdmin-${PMA49}-all-languages phpMyAdmin
-      ## PHP 5.5-7.0 仅 PMA 4.8 LTS 支持
-      #elif [ "${phpV}}" = "3" || "${phpV}" = "4" || "${phpV}" = "5" ]; then
-      #  cd /home/demo/public_html
-      #  wget ${phpMyAdminURL}/phpMyAdmin/4.8.5/phpMyAdmin-4.8.5-all-languages.zip
-      #  https://files.phpmyadmin.net/phpMyAdmin/${PMA5}/phpMyAdmin-${PMA5}-all-languages.zip
-      #  unzip phpMyAdmin-4.8.5-all-languages.zip
-      #  rm -rf phpMyAdmin-4.8.5-all-languages.zip
-      #  mv phpMyAdmin-4.8.5-all-languages phpMyAdmin
-      ## PHP 7.1+ 支持 4.8，5.0+
       else
         echo 'Install phpMyAdmin 5.1'
         cd /var/www/vhosts/localhost/html/
@@ -633,9 +527,6 @@ doInstall(){
     touch /root/defaulthtpasswd
     echo "llstackadmin:$LSPASSRAND" > /root/defaulthtpasswd
     /usr/local/lsws/bin/lswsctrl restart >/dev/null
-    if [ "${HttpdV}" = '1' ]; then
-      systemctl restart php${phpInsVer}-php-fpm
-    fi
     mkdir -p /root/OLStack-yum/
     mv /tmp/OLStack-yum-master/* /root/OLStack-yum/
     chmod +x /root/OLStack-yum/*
@@ -735,7 +626,7 @@ main() {
     if [ -n "$1" ]; then
         preInstall
     else
-        doInstall "${mysqlV}" "${phpV}" "${LiteSpeedV}" "${HttpdV}" "${dbV}" "${freeV}"
+        doInstall "${mysqlV}" "${phpV}" "${LiteSpeedV}" "${dbV}" "${freeV}"
     fi
 }
 
@@ -770,9 +661,6 @@ clear
             ;;
         -[lL] | -ols | --openlitespeed) shift
             LiteSpeedV="${1}"
-            ;;
-        -[aA] | -apache | --Apache) shift
-            HttpdV="${1}"
             ;;
         -[dD] | -dbtool | --DBTOOL) shift
             dbV="${1}"
