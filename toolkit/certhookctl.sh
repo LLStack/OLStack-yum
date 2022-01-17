@@ -2,6 +2,10 @@
 BOTCRON='/var/spool/cron/crontabs/root'
 
 cert_hook(){
+    if [ ! -e ${BOTCRON} ]; then
+        touch ${BOTCRON}
+        chmod 600 ${BOTCRON}
+    fi
     grep 'acme' ${BOTCRON} >/dev/null
     if [ ${?} = 0 ]; then
         grep 'lswsctrl' ${BOTCRON} >/dev/null

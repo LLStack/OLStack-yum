@@ -4,7 +4,6 @@ LSDIR='/usr/local/lsws'
 OLS_HTTPD_CONF="${LSDIR}/conf/httpd_config.conf"
 LSV='openlitespeed'
 EPACE='        '
-add_ssl_domainD=''
 letencryptD=''
 self_ssl_crtD=''
 change_self_sslD=''
@@ -130,7 +129,6 @@ issue_cert(){
 }
 
 add_ssl_domain(){
-    if [ "${add_ssl_domainD}" = "1" ]; then
     cat >> /etc/httpd/conf.d/vhosts/${DOMAIND}.conf << EOF
 <VirtualHost *:445>
     ServerAdmin webmaster@llstack.com
@@ -167,7 +165,6 @@ add_ssl_domain(){
 </VirtualHost>
 
 EOF
-fi
 }
 
 change_self_ssl(){
@@ -193,19 +190,13 @@ check_ssl_acme(){
 }
 
 #echo_things(){
-#    echow  "add_ssl_domainD $add_ssl_domainD"
 #    echow  "letencryptD $letencryptD"
 #    echow  "self_ssl_crtD $self_ssl_crtD"
 #    echow  "change_self_sslD $change_self_sslD"
 #}
 
-changephp(){
-    if [  -f "/etc/httpd/conf.d/php${DOMAIND}-php.conf" ]; then
-        sed -i "s@php00-php.conf@php${DOMAIND}-php.conf@g" /etc/httpd/conf.d/vhosts/${DOMAIND}.conf
-    fi
-}
-
 add_domain(){
+    echow  "letencryptD：${letencryptD}"
     dot_escape ${1}
     DOMAIN=${ESCAPE}
     DOMAIND=${1}
@@ -221,11 +212,12 @@ add_domain(){
     add_ssl_domain
     set_server_conf
     change_self_ssl
-    changephp
     bash /usr/local/lsws/bin/lswsctrl restart
     echow  "Restart LiteSpeed"
     systemctl restart httpd.service
     echow  "Restart HTTPD"
+    echow  "${acme_checkD}"
+    echow  "${letencryptD}"
 }
 
 
@@ -235,11 +227,8 @@ while [ ! -z "${1}" ]; do
         -[hH] | -help | --help)
             help_message
             ;;
-        -[sS] | -ssl | --SSL)
-            add_ssl_domainD='1'
-            ;;
-        -[lL] | -letencrypt | --letencrypt)
-            letencryptD='1'
+        -[lL] | -letencrypt | --letencrypt) shift
+            letencryptD=${1}
             ;;
         -[kK] | -key | --KEY) shift
             self_ssl_key=${1}
